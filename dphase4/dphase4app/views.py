@@ -20,7 +20,7 @@ RECV_SIZE = 2 * 1024 * 1024
 current_graphs_of_users = { "makcay": -1, "ecf": -1 }
 graphs = {}
 
-file_name = ""
+outputNumber = 0
 
 # Commands
 
@@ -61,6 +61,7 @@ def command_to_dict(cmd):
 def send_command_receive_result(sock, com, username):
     global current_graphs_of_users
     global graphs
+    global outputNumber
 
     commandstr = com
     command = commandstr.split(' ')
@@ -149,7 +150,10 @@ def send_command_receive_result(sock, com, username):
             print("Failed to disconnect.")
     elif command_dict["action"] == "set":
         node = graphs[current_graphs_of_users[username]].nodes[command_dict["node_id"]]
-        node.inportValues[0] = command_dict["value"]
+        if node.componenttype == "LoadImage":
+            node.inportValues[0] = "./static/" + command_dict["value"]
+        else:
+            node.inportValues[0] = command_dict["value"]
         exec_result = node.execute()[0]
         nodedata = { "value": exec_result }
         command_dict["node_data"] = nodedata
@@ -169,13 +173,14 @@ def send_command_receive_result(sock, com, username):
         if img_str != None:
             img_data = base64.b64decode(img_str)
             img = Image.open(io.BytesIO(img_data))
-            filename = file_name.rsplit(".", 1)[0] + '_output.png'
-            image_path = 'static/' + filename
+            filename = 'output' + str(outputNumber) + '.png'
+            outputNumber += 1
+            image_path = './static/' + filename
             img.save(image_path, 'PNG')
         
-            response = {'message':"Received the final image from server. Image saved to " + filename + ".", 'image_path': filename}
+            response = {'message':"Received the final image from server. Image saved to " + image_path + ".", 'image_path': image_path}
             print("Received the final image from server.")
-            print("Image saved to " + filename)
+            print("Image saved to " + image_path)
         else:
             response = {'message':"Failed to receive the final image from server. Validation failed.", 'image_path': None}
             print("Failed to receive the final image from server. Validation failed.")
@@ -224,8 +229,6 @@ def viewlogin(request):
 
 # 127.0.0.1:8000/sendcommand/
 def viewsendcommand(request):
-    global file_name
-
     context = {}
 
     username = request.user.username
@@ -236,8 +239,7 @@ def viewsendcommand(request):
             return render(request, 'sendcommand.html', { "serverresponse": "Please login before uploading an image." })
         image_file = request.FILES['uploadedimage']
         image = Image.open(image_file)
-        file_name = image_file.name
-        image.save(file_name, 'PNG')
+        image.save("./static/" + image_file.name, 'PNG')
 
     # Get command
     command = request.POST.get('command')
@@ -274,7 +276,7 @@ def viewsendcommand(request):
                 context["image_path"] = ""
             else:
                 context["resultimage"] = "true"
-                context["image_path"] = '/static/' + serverResponse["image_path"]
+                context["image_path"] = serverResponse["image_path"][1:]
             context["serverresponse"] = f'Server response: {serverResponse["message"]}'
         elif serverResponse != None:
             context["serverresponse"] = f'Server response: {serverResponse}'
