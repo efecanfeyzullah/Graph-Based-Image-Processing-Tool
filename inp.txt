@@ -1,0 +1,10 @@
+newgraph
+open 0
+newnode LoadImage
+newnode GetFloat
+newnode RotateImage
+connect 0 0 2 0
+connect 1 0 2 1
+set 0 koala.png
+set 1 45
+execute

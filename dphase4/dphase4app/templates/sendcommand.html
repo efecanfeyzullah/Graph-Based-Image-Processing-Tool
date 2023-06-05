@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Graph Based Image Processing Tool</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+    <form method="post">
+        {% csrf_token %}
+        <label for="user">Command:</label><br>
+        <input type="text" id="command" name="command"><br>
+        <br>
+        <input type="submit" value="Send"><br>
+    </form>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="uploadedimage" accept="image/*">
+        <button type="submit">Upload</button>
+      </form>
+    <div>
+        {{ serverresponse }}
+    </div>
+    {% if resultimage %}
+        <div>
+            <br>
+            Result image:
+        </div>
+        <div>
+            <img src="{{ image_path }}" alt="Result Image">
+        </div>
+        <a href="{{ image_path }}" download>Download Image</a>
+    {% endif %}
+</body> 
