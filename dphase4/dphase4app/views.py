@@ -9,6 +9,7 @@ import socket
 import base64
 import json
 import io
+import os
 from cryptography.fernet import Fernet
 
 # define the host and port
@@ -151,7 +152,10 @@ def send_command_receive_result(sock, com, username):
     elif command_dict["action"] == "set":
         node = graphs[current_graphs_of_users[username]].nodes[command_dict["node_id"]]
         if node.componenttype == "LoadImage":
-            node.inportValues[0] = "./static/" + command_dict["value"]
+            if os.path.exists("./static/" + command_dict["value"]):
+                node.inportValues[0] = "./static/" + command_dict["value"]
+            else:
+                return "Failed to set image, file does not exist."
         else:
             node.inportValues[0] = command_dict["value"]
         exec_result = node.execute()[0]
@@ -161,8 +165,8 @@ def send_command_receive_result(sock, com, username):
         sock.sendall(json_data.encode())
         result = sock.recv(RECV_SIZE)
         if int(result.decode()) == 0:
-            response = "Failed to set"
-            print("Failed to set")
+            response = "Failed to set."
+            print("Failed to set.")
     elif command_dict["action"] == "execute":
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
@@ -180,7 +184,7 @@ def send_command_receive_result(sock, com, username):
         
             response = {'message':"Received the final image from server. Image saved to " + image_path + ".", 'image_path': image_path}
             print("Received the final image from server.")
-            print("Image saved to " + image_path)
+            print("Image saved to " + image_path + ".")
         else:
             response = {'message':"Failed to receive the final image from server. Validation failed.", 'image_path': None}
             print("Failed to receive the final image from server. Validation failed.")
