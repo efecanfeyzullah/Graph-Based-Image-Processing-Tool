@@ -84,7 +84,7 @@ class ScaleImage(Component):
 class CropImage(Component):
     def execute(self, inp):
         image = inp[0]
-        image = image.crop(inp[1], inp[2], inp[3], inp[4])  # left, top, right, bottom
+        image = image.crop((inp[1], inp[2], inp[3], inp[4]))  # left, top, right, bottom
         return [image]
 class FitImage(Component):
     def execute(self, inp):
@@ -103,8 +103,8 @@ class StackImage(Component):
         w1, h1 = image1.size
         w2, h2 = image2.size
         combinedImage = Image.new(mode="RGB", size=(max(w1, w2), h1 + h2))
-        combinedImage.paste(image1, (0, h1, w1, 0))
-        combinedImage.paste(image2, (0, h2 + h1, w2, h1))
+        combinedImage.paste(image1, (0, 0, w1, h1))
+        combinedImage.paste(image2, (0, h1, w2, h2 + h1))
         return [combinedImage]
 class HStackImage(Component):
     def execute(self, inp):
@@ -113,8 +113,8 @@ class HStackImage(Component):
         w1, h1 = image1.size
         w2, h2 = image2.size
         combinedImage = Image.new(mode="RGB", size=(w1 + w2, max(h1, h2)))
-        combinedImage.paste(image1, (0, h1, w1, 0))
-        combinedImage.paste(image2, (h1, h2, w2 + h2, 0))
+        combinedImage.paste(image1, (0, 0, w1, h1))
+        combinedImage.paste(image2, (w1, 0, w1 + w2, h2))
         return [combinedImage]
 
 # Other Components
@@ -171,7 +171,7 @@ class Node:
         elif componenttype == "RotateImage":
             self.component = RotateImage("RotateImage", [("Input", "Image"), ("Angle", "float")], [("Output", "Image")])
         elif componenttype == "ScaleImage":
-            self.component = ScaleImage("RotateImage", [("Input", "Image"), ("ScaleFactor", "float")], [("Output", "Image")])
+            self.component = ScaleImage("ScaleImage", [("Input", "Image"), ("ScaleFactor", "float")], [("Output", "Image")])
         elif componenttype == "CropImage":
             self.component = CropImage("CropImage", [("Input", "Image"), ("Left", "int"), ("Top", "int"), ("Right", "int"), ("Bottom", "int")], [("Output", "Image")])
         elif componenttype == "FitImage":
