@@ -2,14 +2,12 @@ import graphLibrary as gl
 
 import socket
 import threading
-import signal
-import sys
 import argparse
 import base64
-import random
-import time
 import json
 import io
+
+from PIL import Image
 from cryptography.fernet import Fernet
 
 parser = argparse.ArgumentParser()
@@ -20,7 +18,7 @@ args = parser.parse_args()
 HOST = '127.0.0.1'
 PORT = args.port
 
-RECV_SIZE = 2 * 1024 * 1024
+RECV_SIZE = 4096
 
 # Create a TCP socket object
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -72,6 +70,7 @@ def print_clients():
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # set <node_id>                                                         { "action": "set", "node_id": 0, "node_data": "Node will be here" }
+# uploadimage <image_name> <image_size>                                 { "action": "uploadimage", "image_name": "ImageName.png" "image_size": 1024 }
 # execute                                                               { "action": "execute" }
 
 def receive_command_send_result(sock, client_address, userid):
@@ -154,28 +153,65 @@ def receive_command_send_result(sock, client_address, userid):
         print(f"Received \"set\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
         if current_graphs_of_users[userid] != -1:
             node = graphs[current_graphs_of_users[userid]].nodes[cmd_dict["node_id"]]
-            node.set_outport(cmd_dict["node_data"])
+            node.inportValues[0] = cmd_dict["value"]
             message = "1"
             sock.sendall(message.encode())
         else:
             message = "0"
             sock.sendall(message.encode())
+    elif cmd_dict["action"] == "uploadimage":
+        print(f"Received \"uploadimage\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
+        message = "1"
+        sock.sendall(message.encode())
+        dataSize = int(cmd_dict["image_size"])
+        receivedSize = 0
+        receivedData = b""
+        while True:
+            if receivedSize == dataSize:
+                break
+            received_data_part = sock.recv(RECV_SIZE)
+            receivedSize += len(received_data_part)
+            receivedData += received_data_part
+        img_data = base64.b64decode(receivedData)
+        img = Image.open(io.BytesIO(img_data))
+        filename = cmd_dict["image_name"]
+        image_path = './serverimages/' + filename
+        img.save(image_path, 'PNG')
+        sock.sendall(message.encode())
     elif cmd_dict["action"] == "execute":
         print(f"Received \"execute\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
         if current_graphs_of_users[userid] != -1:
             executionResult = graphs[current_graphs_of_users[userid]].execute([])
             if executionResult == None:
-                image_data = {"image": None}
-                json_data = json.dumps(image_data)
-                sock.sendall(json_data.encode('utf-8'))
-            else:
+                sock.sendall("0".encode())
+                print("Nothing obtained from execution.")
+                return
+            print("Sending execution results to django...")
+            # Send output count
+            sock.sendall(str(len(executionResult)).encode())
+            # Receive "1" from django
+            sock.recv(RECV_SIZE)
+            # Send all results one by one
+            for elem in executionResult:
+                # Send node id
+                sock.sendall(str(elem[0]).encode())
+                # Receive "1" from django
+                sock.recv(RECV_SIZE)
+                # Send outport value
                 buffer = io.BytesIO()
-                executionResult.save(buffer, format="JPEG")
+                elem[1].save(buffer, format="PNG")
                 img_bytes = buffer.getvalue()
-                image_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                image_data = {"image": image_base64}
-                json_data = json.dumps(image_data)
-                sock.sendall(json_data.encode('utf-8'))
+                image_base64 = base64.b64encode(img_bytes)
+                dataSize = len(image_base64)
+                # Send image size
+                sock.sendall(str(dataSize).encode())
+                # Receive "1" from django
+                sock.recv(RECV_SIZE)
+                # Send image
+                sock.sendall(image_base64)
+                # Receive "1" from django
+                sock.recv(RECV_SIZE)
+            print("Sent all execution results to django.")
         else:
             message = "0"
             sock.sendall(message.encode())

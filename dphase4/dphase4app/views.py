@@ -16,7 +16,7 @@ from cryptography.fernet import Fernet
 HOST = '127.0.0.1'
 PORT = 1234
 
-RECV_SIZE = 2 * 1024 * 1024
+RECV_SIZE = 4096
 
 current_graphs_of_users = { "makcay": -1, "ecf": -1 }
 graphs = {}
@@ -35,7 +35,7 @@ outputNumber = 0
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
-# set <node_id> <value>                                                 { "action": "set", "node_id": 0, "value": "Value will be here", "node_data": "Node will be here" }
+# set <node_id> <value>                                                 { "action": "set", "node_id": 0, "value": "10"}
 # execute                                                               { "action": "execute" }
 
 def command_to_dict(cmd):
@@ -55,6 +55,8 @@ def command_to_dict(cmd):
         return { "action": "disconnect", "node1_id": int(cmd[1]), "node1_outport": int(cmd[2]), "node2_id": int(cmd[3]), "node2_inport": int(cmd[4]) }
     elif cmd[0] == "set":
         return { "action": "set", "node_id": int(cmd[1]), "value": cmd[2], "node_data": None }
+    elif cmd[0] == "uploadimage":
+        return { "action": "uploadimage", "image_name": cmd[1], "image_size": int(cmd[2]) }
     elif cmd[0] == "execute":
         return { "action": "execute" }
 
@@ -64,8 +66,7 @@ def send_command_receive_result(sock, com, username):
     global graphs
     global outputNumber
 
-    commandstr = com
-    command = commandstr.split(' ')
+    command = com.split(' ')
     command_dict = command_to_dict(command)
 
     response = None
@@ -150,44 +151,61 @@ def send_command_receive_result(sock, com, username):
             response = "Failed to disconnect."
             print("Failed to disconnect.")
     elif command_dict["action"] == "set":
-        node = graphs[current_graphs_of_users[username]].nodes[command_dict["node_id"]]
-        if node.componenttype == "LoadImage":
-            if os.path.exists("./static/" + command_dict["value"]):
-                node.inportValues[0] = "./static/" + command_dict["value"]
-            else:
-                return "Failed to set image, file does not exist."
-        else:
-            node.inportValues[0] = command_dict["value"]
-        exec_result = node.execute()[0]
-        nodedata = { "value": exec_result }
-        command_dict["node_data"] = nodedata
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
         result = sock.recv(RECV_SIZE)
-        if int(result.decode()) == 0:
+        if int(result.decode()) == 1:
+            response = "Successfully set."
+        else:
             response = "Failed to set."
             print("Failed to set.")
+    elif command_dict["action"] == "uploadimage":
+        json_data = json.dumps(command_dict)
+        sock.sendall(json_data.encode())
+        result = sock.recv(RECV_SIZE)
+        if int(result.decode()) == 1:
+            response = "Received uploadimage command, now waiting for the image data..."
+            print("Received uploadimage command, now waiting for the image data...")
     elif command_dict["action"] == "execute":
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
-        
-        json_data = sock.recv(RECV_SIZE).decode()
-        json_dict = json.loads(json_data)
-        img_str = json_dict["image"]
-        if img_str != None:
-            img_data = base64.b64decode(img_str)
-            img = Image.open(io.BytesIO(img_data))
-            filename = 'output' + str(outputNumber) + '.png'
-            outputNumber += 1
-            image_path = './static/' + filename
-            img.save(image_path, 'PNG')
-        
-            response = {'message':"Received the final image from server. Image saved to " + image_path + ".", 'image_path': image_path}
-            print("Received the final image from server.")
-            print("Image saved to " + image_path + ".")
+        # Get output count from server
+        outputCount = int(sock.recv(RECV_SIZE).decode())
+        if outputCount > 0:
+            # Send "1" to server
+            sock.sendall("1".encode())
+            i = 0
+            while i < outputCount:
+                # Get node id from server
+                nodeid = int(sock.recv(RECV_SIZE).decode())
+                # Send "1" to server
+                sock.sendall("1".encode())
+                # Get image size from server
+                imageSize = int(sock.recv(RECV_SIZE).decode())
+                # Send "1" to server
+                sock.sendall("1".encode())
+                # Get image from server
+                receivedSize = 0
+                receivedData = b""
+                while True:
+                    if receivedSize == imageSize:
+                        break
+                    received_data_part = sock.recv(RECV_SIZE)
+                    receivedSize += len(received_data_part)
+                    receivedData += received_data_part
+                img_data = base64.b64decode(receivedData)
+                img = Image.open(io.BytesIO(img_data))
+                # Set node outport with received image
+                graphs[current_graphs_of_users[username]].nodes[nodeid].outportValues[0] = img
+                # Send "1" to server
+                sock.sendall("1".encode())
+                i += 1
+
+            response = "Received the final images from server. Placed final images into corresponding nodes."
+            print("Received the final images from server. Placed final images into corresponding nodes.")
         else:
-            response = {'message':"Failed to receive the final image from server. Validation failed.", 'image_path': None}
-            print("Failed to receive the final image from server. Validation failed.")
+            response = "Failed to receive the final images from server. Validation failed or no finishing node present."
+            print("Failed to receive the final images from server. Validation failed or no finishing node present.")
 
     return response
 
@@ -243,7 +261,38 @@ def viewsendcommand(request):
             return render(request, 'sendcommand.html', { "serverresponse": "Please login before uploading an image." })
         image_file = request.FILES['uploadedimage']
         image = Image.open(image_file)
-        image.save("./static/" + image_file.name, 'PNG')
+        #image.save("./static/" + image_file.name, 'PNG')
+
+        # Create a TCP socket object
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Connect to the server
+        sock.connect((HOST, PORT))
+
+        try:    
+            # Send user id to server
+            sock.sendall(username.encode())
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
+
+            # Send image to tcp_service
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            img_bytes = buffer.getvalue()
+            image_base64 = base64.b64encode(img_bytes)
+            dataSize = len(image_base64)
+
+            # Send uploadimage command to server
+            serverResponse = send_command_receive_result(sock, "uploadimage " + image_file.name + " " + str(dataSize), username)
+            # Send image data
+            sock.sendall(image_base64)
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
+        except ConnectionResetError:
+            print("Server closed connection.")
+        finally:
+            # Close the socket
+            sock.close()
 
     # Get command
     command = request.POST.get('command')
@@ -273,16 +322,7 @@ def viewsendcommand(request):
             # Close the socket
             sock.close()
 
-        if command == 'execute':
-            if serverResponse["image_path"] == None:
-                if "resultimage" in context:
-                    del context["resultimage"]
-                context["image_path"] = ""
-            else:
-                context["resultimage"] = "true"
-                context["image_path"] = serverResponse["image_path"][1:]
-            context["serverresponse"] = f'Server response: {serverResponse["message"]}'
-        elif serverResponse != None:
+        if serverResponse != None:
             context["serverresponse"] = f'Server response: {serverResponse}'
 
     # Render sendcommand.html

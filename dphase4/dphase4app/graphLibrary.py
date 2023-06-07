@@ -19,53 +19,27 @@ class Component:
     def execute(self, inp):
         pass
 
-    def skip_execute(self, nodedata):
-        pass
-
 ### Derived component classes
 
 # Interactive components
 class LoadImage(Component):
     def execute(self, inp):
-        #img_name = input("LoadImage input: ")
         img_name = inp[0]
-        with open(img_name, 'rb') as f:
-            img_bytes = f.read()
-        img_str = base64.b64encode(img_bytes).decode()
-        return [img_str]
-    
-    def skip_execute(self, nodedata):
-        img_str = nodedata["value"]
-        img_bytes = base64.b64decode(img_str)
-        img = Image.open(io.BytesIO(img_bytes))
-        # img.show()
+        img = Image.open("./serverimages/" + img_name)
         return [img]
 class GetString(Component):
     def execute(self, inp):
-        #string = input("GetString input: ")
         string = inp[0]
         return [string]
 class GetInteger(Component):
     def execute(self, inp):
-        #val = int(input("GetInteger input: "))
         val = int(inp[0])
         return [val]
-    def skip_execute(self, nodedata):
-        val = nodedata["value"]
-        intval = int(val)
-        #print ("intval-> " + str(intval) + "  -- " + str(type(intval)))
-        return [intval]
-
 class GetFloat(Component):
     def execute(self, inp):
-        #val = float(input("GetFloat input: "))
         val = float(inp[0])
         return [val]
-    def skip_execute(self, nodedata):
-        val = nodedata["value"]
-        floatval = float(val)
-        #print ("floatval-> " + str(floatval) + "  -- " + str(type(floatval)))
-        return [floatval]
+    
 # Editing Components
 class RotateImage(Component):
     def execute(self, inp):
@@ -121,9 +95,7 @@ class HStackImage(Component):
 class SaveImage(Component):
     # input -> newImageName
     def execute(self, inp):
-        image = inp[0]
-        imageName = inp[1]
-        image.save(imageName)
+        return [inp[0]]
 class DupImage(Component):
     def execute(self, inp):
         image = inp[0]
@@ -135,9 +107,7 @@ class GetDimensions(Component):
         return [(w, h)]
 class ViewImage(Component):
     def execute(self, inp):
-        image = inp[0]
-        image.show()
-        return []
+        return [inp[0]]
 
 # Node class for graph
 class Node:
@@ -184,14 +154,13 @@ class Node:
             self.component = HStackImage("HStackImage", [("Input 1", "Image"), ("Input 2", "Image")], [("Output", "Image")])
 
         elif componenttype == "SaveImage":
-            self.component = SaveImage("SaveImage", [("Input", "Image"), ("ImageName", "string")], [("Output", "file")])
-            self.component.isInteractive = True
+            self.component = SaveImage("SaveImage", [("Input", "Image"), ("ImageName", "str")], [("Output", "Image")])
         elif componenttype == "DupImage":
-            self.component = DupImage("DupImage", [("Input", "Image")], [("Duplicate", "file"), ("Duplicate", "file")])
+            self.component = DupImage("DupImage", [("Input", "Image")], [("Duplicate", "Image"), ("Duplicate", "Image")])
         elif componenttype == "GetDimensions":
             self.component = GetDimensions("GetDimensions", [("Input", "Image")], [("Width", "int"), ("Height", "int")])
         elif componenttype == "ViewImage":
-            self.component = ViewImage("ViewImage", [("Input", "Image")], [])
+            self.component = ViewImage("ViewImage", [("Input", "Image")], [("Output", "Image")])
 
         # All ports are initialized to None
         for inport in self.component.inports:
@@ -203,11 +172,6 @@ class Node:
         outport = self.component.execute(self.inportValues)
         self.outportValues = outport
         return self.outportValues
-    
-    def set_outport(self, nodedata):
-        outport = self.component.skip_execute(nodedata)
-        self.outportValues = outport
-        return outport
         
 
 # Core graph class
@@ -256,18 +220,21 @@ class Graph:
             node1.inportValues[connection[3]] = node0.outportValues[connection[1]]
 
     def isvalid(self):
-        for node in self.nodes.values():    # Go over all nodes and check if any inport is disconnected
-            if node.component.isInteractive:    # Skip interactive components
-                continue
-            i = 0
-            while i < len(node.inportValues):
-                inportConnected = False
-                for connection in self.connections:
-                    if connection[2] == node.id and connection[3] == i:
-                        inportConnected = True
-                if not inportConnected:
-                    return False
-                i += 1
+        for node in self.nodes.values():
+            if node.component.isInteractive:    # Check if all interactive nodes are set
+                for elem in node.inportValues:
+                    if elem == "" or elem == None:
+                        return False
+            else:                               # Check if non-interactive nodes inports are connected
+                i = 0
+                while i < len(node.inportValues):
+                    inportConnected = False
+                    for connection in self.connections:
+                        if connection[2] == node.id and connection[3] == i:
+                            inportConnected = True
+                    if not inportConnected:
+                        return False
+                    i += 1
         return True        
 
     def runparams(self):
@@ -288,23 +255,21 @@ class Graph:
     def execute(self, params):
         if self.isvalid():  # Execute if valid
             print("Validation complete.")
-            # Execute all nodes
+
+            # Execute all nodes in the added order
             nodeList = self.nodes.values()
-            output = None
             for node in nodeList:
-                if not node.component.isInteractive:
-                    output = node.execute()
+                output = node.execute()
                 self.updateConnections()
+                    
             print("Execution complete.")
-            # Add all disconnected outport values to a tuple and return it
-            # allOutportValues = []
-            # for node in nodeList:
-            #     for value in node.outportValues:
-            #         if value == None:
-            #             allOutportValues.append(value)
-            # allOutportValues = tuple(allOutportValues)
-            # return allOutportValues
-            return output[0]
+
+            # Add all outport values of SaveImage and ViewImage nodes to a list and return it
+            allOutputs = []
+            for node in nodeList:
+                if node.componenttype == "SaveImage" or node.componenttype == "ViewImage":
+                    allOutputs.append((node.id, node.outportValues[0]))
+            return allOutputs
         else:
             print("Validation failed.")
             return None
