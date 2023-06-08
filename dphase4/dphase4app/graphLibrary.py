@@ -307,7 +307,7 @@ class Graph:
         Node.availableID = gDict["nodeAvailableID"]
 
         self.connections = gDict["connections"]
-        self.componenttypesstr = gDict["componenttypesstr"]
+        #self.componenttypesstr = gDict["componenttypesstr"]
 
     def getDict(self):
         result = {}
@@ -330,6 +330,6 @@ class Graph:
             i += 1
 
         result["connections"] = self.connections
-        result["componenttypesstr"] = self.componenttypesstr
+        #result["componenttypesstr"] = self.componenttypesstr
 
         return result
