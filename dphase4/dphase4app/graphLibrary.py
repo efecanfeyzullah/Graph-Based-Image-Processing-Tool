@@ -154,7 +154,7 @@ class Node:
             self.component = HStackImage("HStackImage", [("Input 1", "Image"), ("Input 2", "Image")], [("Output", "Image")])
 
         elif componenttype == "SaveImage":
-            self.component = SaveImage("SaveImage", [("Input", "Image"), ("ImageName", "str")], [("Output", "Image")])
+            self.component = SaveImage("SaveImage", [("Input", "Image"), ("ImageName", "string")], [("Output", "Image")])
         elif componenttype == "DupImage":
             self.component = DupImage("DupImage", [("Input", "Image")], [("Duplicate", "Image"), ("Duplicate", "Image")])
         elif componenttype == "GetDimensions":
@@ -299,15 +299,38 @@ class Graph:
         nodeDicts = list(gDict["nodes"].values())
         i = 0
         while i < len(nodeIDs):
-            self.nodes[int(nodeIDs[i])] = Node(nodeDicts[i]["componenttype"], int(nodeIDs[i]))
-            self.nodes[int(nodeIDs[i])].inportValues = nodeDicts[i]["inportValues"]
-            self.nodes[int(nodeIDs[i])].outportValues = nodeDicts[i]["outportValues"]
+            nodeid = int(nodeIDs[i])
+            self.nodes[nodeid] = Node(nodeDicts[i]["componenttype"], nodeid)
+
+            # Inports
+            j = 0
+            while j < len(self.nodes[nodeid].inportValues):
+                if self.nodes[nodeid].component.inports[j][1] == "Image":
+                    b64encoded = nodeDicts[i]["inportValues"][j]
+                    img_bytes = base64.b64decode(b64encoded.encode())
+                    img = Image.open(io.BytesIO(img_bytes))
+                    self.nodes[nodeid].inportValues[j] = img
+                else:
+                    self.nodes[nodeid].inportValues[j] = nodeDicts[i]["inportValues"][j]
+                j += 1
+            
+            # Outports
+            j = 0
+            while j < len(self.nodes[nodeid].outportValues):
+                if self.nodes[nodeid].component.outports[j][1] == "Image":
+                    b64encoded = nodeDicts[i]["outportValues"][j]
+                    img_bytes = base64.b64decode(b64encoded.encode())
+                    img = Image.open(io.BytesIO(img_bytes))
+                    self.nodes[nodeid].outportValues[j] = img
+                else:
+                    self.nodes[nodeid].outportValues[j] = nodeDicts[i]["outportValues"][j]
+                j += 1
+
             i += 1
 
         Node.availableID = gDict["nodeAvailableID"]
 
         self.connections = gDict["connections"]
-        #self.componenttypesstr = gDict["componenttypesstr"]
 
     def getDict(self):
         result = {}
@@ -324,12 +347,36 @@ class Graph:
         while i < len(nodesKeyList):
             result["nodes"][nodesKeyList[i]] = {}
             result["nodes"][nodesKeyList[i]]["id"] = nodesValueList[i].id
-            result["nodes"][nodesKeyList[i]]["inportValues"] = nodesValueList[i].inportValues
-            result["nodes"][nodesKeyList[i]]["outportValues"] = nodesValueList[i].outportValues
             result["nodes"][nodesKeyList[i]]["componenttype"] = nodesValueList[i].componenttype
+            
+            # Inports
+            result["nodes"][nodesKeyList[i]]["inportValues"] = []
+            j = 0
+            while j < len(nodesValueList[i].inportValues):
+                if nodesValueList[i].component.inports[j][1] == "Image":
+                    buffer = io.BytesIO()
+                    nodesValueList[i].inportValues[j].save(buffer, format="PNG")
+                    img_bytes = buffer.getvalue()
+                    result["nodes"][nodesKeyList[i]]["inportValues"].append(base64.b64encode(img_bytes).decode())
+                else:
+                    result["nodes"][nodesKeyList[i]]["inportValues"].append(nodesValueList[i].inportValues[j])
+                j += 1
+            
+            # Outports
+            result["nodes"][nodesKeyList[i]]["outportValues"] = []
+            j = 0
+            while j < len(nodesValueList[i].outportValues):
+                if nodesValueList[i].component.outports[j][1] == "Image":
+                    buffer = io.BytesIO()
+                    nodesValueList[i].outportValues[j].save(buffer, format="PNG")
+                    img_bytes = buffer.getvalue()
+                    result["nodes"][nodesKeyList[i]]["outportValues"].append(base64.b64encode(img_bytes).decode())
+                else:
+                    result["nodes"][nodesKeyList[i]]["outportValues"].append(nodesValueList[i].outportValues[j])
+                j += 1
+            
             i += 1
 
         result["connections"] = self.connections
-        #result["componenttypesstr"] = self.componenttypesstr
 
         return result

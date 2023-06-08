@@ -62,7 +62,7 @@ def print_clients():
 ### Multi-instance commands
 # newgraph                                                              { "action": "newgraph" }
 # listgraphs                                                            { "action": "listgraphs" }
-# open <graph_id>                                                       { "action": "open", "graph_id": 0, "present": 0 }
+# open <graph_id>                                                       { "action": "open", "graph_id": 0 }
 # close <graph_id>                                                      { "action": "close", "graph_id": 0 }
 
 ### Graph specific commands
@@ -104,12 +104,21 @@ def receive_command_send_result(sock, client_address, userid):
             graphLocks[cmd_dict["graph_id"]].acquire()
             print(f"{client_address} acquired the lock of graph " + str(cmd_dict["graph_id"]) + ".")
             current_graphs_of_users[userid] = cmd_dict["graph_id"]
-            dict_message = { "result": 1, "graph": graphs[current_graphs_of_users[userid]].getDict() }
+            graphDict = graphs[current_graphs_of_users[userid]].getDict()
+            graphData = json.dumps(graphDict).encode()
+            dataSize = len(graphData)
+            dict_message = { "result": 1, "data_size": dataSize }
             j_data = json.dumps(dict_message)
+            # Send result and data size to django
             sock.sendall(j_data.encode())
+            # Receive "1" from django
+            sock.recv(RECV_SIZE)
+            # Send data to django
+            sock.sendall(graphData)
         else:
-            dict_message = { "result": 0, "graph": {} }
+            dict_message = { "result": 0, "data_size": 0 }
             j_data = json.dumps(dict_message)
+            # Send result and data size to django
             sock.sendall(j_data.encode())
     elif cmd_dict["action"] == "close":
         print(f"Received \"close\" command from {client_address} for graph {current_graphs_of_users[userid]}.")

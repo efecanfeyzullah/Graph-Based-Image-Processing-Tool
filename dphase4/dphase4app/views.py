@@ -95,10 +95,24 @@ def send_command_receive_result(sock, com, username):
         j_data = sock.recv(RECV_SIZE).decode()
         result_dict = json.loads(j_data)
         if result_dict["result"] == 1:
+            dataSize = result_dict["data_size"]
+            rcvdDataSize = 0
+            # Send "1" to server
+            sock.sendall("1".encode())
+            # Receive graph data from server
+            rcvd_data = b""
+            while True:
+                if rcvdDataSize == dataSize:
+                    break
+                rcvd_data_part = sock.recv(RECV_SIZE)
+                rcvd_data += rcvd_data_part
+                rcvdDataSize += len(rcvd_data_part)
+            rcvdGraphDict = json.loads(rcvd_data.decode())
+            # Set graph
             current_graphs_of_users[username] = command_dict["graph_id"]
             if current_graphs_of_users[username] not in graphs.keys():
                 graphs[current_graphs_of_users[username]] = gl.Graph("", username)
-            graphs[current_graphs_of_users[username]].setWithDict(result_dict["graph"])
+            graphs[current_graphs_of_users[username]].setWithDict(rcvdGraphDict)
             graphs[current_graphs_of_users[username]].name = "Local graph " + str(current_graphs_of_users[username])
             response = "Opened graph " + str(command_dict["graph_id"]) + f". (Owner: {graphs[current_graphs_of_users[username]].user.name})"
             print("Opened graph " + str(command_dict["graph_id"]) + ".")
