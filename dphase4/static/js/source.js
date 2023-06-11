@@ -39,12 +39,16 @@ function handleRectangleDragStart(event) {
   
     const data = event.dataTransfer.getData('text/plain');
     const droppedElement = document.getElementById(data);
-        console.log(droppedElement.classList.contains("rectangle"));
 
-    if (droppedElement) {
+    if (droppedElement.classList.contains("menu-button")) {
         const dropArea = event.currentTarget;
         const newRectangle  = createRectangle(event, data);
         dropArea.appendChild(newRectangle);
+    }
+    else if (droppedElement.classList.contains("rectangle")){
+        const targetPos = { x:event.clientX - 50, y:event.clientY - 25 };
+        moveRectangle(targetPos, droppedElement);
+        console.log(droppedElement.getAttribute("id"));
     }
   }
   
@@ -79,5 +83,11 @@ function createRectangle(event, data) {
 
     rectangleIdCounter++;
     return newRectangle ;
+}
+
+function moveRectangle(targetPos, rectangle){
+    rectangle.style.left = targetPos.x + 'px';
+    rectangle.style.top = targetPos.y + 'px';
+
 }
   
