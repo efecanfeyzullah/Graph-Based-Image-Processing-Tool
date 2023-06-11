@@ -10,6 +10,7 @@
     margin-left: 220px; /* Adjust this value to create the desired separation */
     background-color: lightgray;
     height: 100vh;
+    /* pointer-events: none; */
 }
 
 
@@ -36,7 +37,7 @@
     line-height: 1.2;
     font-size: 12px; /* Adjust the font size as desired */
     position: absolute;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 
