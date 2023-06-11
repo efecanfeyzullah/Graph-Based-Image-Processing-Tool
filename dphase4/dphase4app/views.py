@@ -262,6 +262,8 @@ def viewlogin(request):
     else:
         return render(request, 'login.html')
    
+def viewjstest(request):
+    return render(request, 'jstest.html')
 
 # 127.0.0.1:8000/sendcommand/
 def viewsendcommand(request):

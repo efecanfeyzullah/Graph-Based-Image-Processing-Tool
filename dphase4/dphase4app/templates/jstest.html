@@ -3,16 +3,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Draw Line</title>
-  <style>
-    #canvas {
-      border: 1px solid #000;
-    }
-  </style>
+    <title>Menu Example</title>
+    <link rel="stylesheet" type="text/css" href="{% static '/css/styles.css' %}" />
 </head>
 <body>
-  <canvas id="canvas" width="500" height="500"></canvas>
+    <div id="left-menu">
+        <a href="#" class="menu-button" id="button1" draggable="true" data-title="Title 1">Button 1</a>
+        <a href="#" class="menu-button" id="button2" draggable="true" data-title="Title 2">Button 2</a>
+        <a href="#" class="menu-button" id="button3" draggable="true" data-title="Title 3">Button 3</a>
+        <a href="#" class="menu-button" id="button4" draggable="true" data-title="Title 4">Button 4</a>
+        <a href="#" class="menu-button" id="button5" draggable="true" data-title="Title 5">Button 5</a>
+    </div>
 
-  <script src="{% static '/js/mainjs.js' %}"></script>
+    <div id="drop-area"></div>
+
+    <script src="{% static '/js/source.js' %}"></script>
 </body>
 </html>
+
