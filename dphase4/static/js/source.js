@@ -1,10 +1,10 @@
 // Mapping of button IDs to titles
 const buttonMapping = {
-    button1: "Title 1",
-    button2: "Title 2",
-    button3: "Title 3",
-    button4: "Title 4",
-    button5: "Title 5",
+    button1: { name: "Title 1", inports: ["Image", "left", "right", "top", "bottom"], outports: [] },
+    button2: { name: "Title 2", inports: [], outports: [] },
+    button3: { name: "Title 3", inports: [], outports: [] },
+    button4: { name: "Title 4", inports: [], outports: [] },
+    button5: { name: "Title 5", inports: [], outports: [] }
   };
   
   let rectangleIdCounter = 0;
@@ -72,7 +72,7 @@ function createRectangle(event, data) {
 
     const newRectangle = document.createElement('div');
     newRectangle.className = 'rectangle';
-    newRectangle.textContent = buttonMapping[data];
+    newRectangle.textContent = buttonMapping[data].name;
     const rectangleId = `rectangle-${rectangleIdCounter}`;
     newRectangle.setAttribute('id', rectangleId);
     newRectangle.style.left = offsetX + 'px';
@@ -80,9 +80,29 @@ function createRectangle(event, data) {
     newRectangle.draggable = true;
     newRectangle.addEventListener('dragstart', handleDragStart);
     newRectangle.addEventListener('dragend', handleDragEnd);
-
+    const inports = buttonMapping[data].inports;
+    newRectangle.style.height = inports.length * 15 + 15 + 'px';
+    for (let i = 0; i < inports.length; i++) {
+        createPort(newRectangle, i, inports[i]);
+    }
     rectangleIdCounter++;
     return newRectangle ;
+}
+
+function createPort(rectangle, idx, inport) {
+    const port = document.createElement('div');
+    port.className = 'circle';
+    const padding = 15;
+    port.style.top = padding + idx * padding + 'px';
+    const text = document.createElement('div');
+    text.className = 'circle-text';
+    text.textContent = inport;
+    port.appendChild(text);
+    port.addEventListener('mousedown', function(event) {
+        event.preventDefault();
+    });
+
+    rectangle.appendChild(port);
 }
 
 function moveRectangle(targetPos, rectangle){

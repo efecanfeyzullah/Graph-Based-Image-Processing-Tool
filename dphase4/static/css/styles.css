@@ -35,7 +35,7 @@
     color: black; /* Change the text color to black */
     text-align: center;
     line-height: 1.2;
-    font-size: 12px; /* Adjust the font size as desired */
+    font-size: 14px; /* Adjust the font size as desired */
     position: absolute;
     pointer-events: auto;
 }
@@ -55,8 +55,17 @@
     border-radius: 50%;
     background-color: black;
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 15px;
+    left: -10px;
+    pointer-events: auto;
+}
+
+.circle-text {
+    position: absolute;
+    top: -5px;
+    left: 120%;
+    font-size: 12px;
+    color: black;
 }
 
 /* Styling for the drag feedback */
