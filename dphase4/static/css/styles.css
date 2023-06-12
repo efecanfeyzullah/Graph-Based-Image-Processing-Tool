@@ -60,6 +60,16 @@
     pointer-events: auto;
 }
 
+
+.textbox {
+    position: relative;
+    left: -20px;
+    top: -5px;
+    width: 20px;
+    height: 5px;
+    font-size: 10px;
+}
+
 .circle-text {
     position: absolute;
     top: -5px;

@@ -1,12 +1,14 @@
 // Mapping of button IDs to titles
 const buttonMapping = {
-    button1: { name: "Title 1", inports: ["Image", "left", "right", "top", "bottom"], outports: [] },
-    button2: { name: "Title 2", inports: [], outports: [] },
-    button3: { name: "Title 3", inports: [], outports: [] },
+    button1: { name: "CropImage", inports: ["Image", "input_left", "input_top", "input_right", "input_bottom"], outports: ["Image"] },
+    button2: { name: "Title 2", inports: [], outports: ["Image"] },
+    button3: { name: "Title 3", inports: ["Image"], outports: [] },
     button4: { name: "Title 4", inports: [], outports: [] },
     button5: { name: "Title 5", inports: [], outports: [] }
   };
   
+  const rectangleTopPadding = 30;
+  const rectangleVerticalPadding = 20;
   let rectangleIdCounter = 0;
   // Function to handle the drag start event
 function handleDragStart(event) {
@@ -77,32 +79,62 @@ function createRectangle(event, data) {
     newRectangle.setAttribute('id', rectangleId);
     newRectangle.style.left = offsetX + 'px';
     newRectangle.style.top = offsetY + 'px';
+
     newRectangle.draggable = true;
     newRectangle.addEventListener('dragstart', handleDragStart);
     newRectangle.addEventListener('dragend', handleDragEnd);
+
     const inports = buttonMapping[data].inports;
-    newRectangle.style.height = inports.length * 15 + 15 + 'px';
+    const outports = buttonMapping[data].outports;
+    newRectangle.style.height = inports.length * rectangleVerticalPadding + rectangleTopPadding + 'px';
+
     for (let i = 0; i < inports.length; i++) {
-        createPort(newRectangle, i, inports[i]);
+      createPort(newRectangle, i, inports[i], false);
+    }
+    for (let i = 0; i < outports.length; i++) {
+      createPort(newRectangle, i, outports[i], true);
     }
     rectangleIdCounter++;
     return newRectangle ;
 }
 
-function createPort(rectangle, idx, inport) {
+function createPort(rectangle, idx, portName, isOutport) {
     const port = document.createElement('div');
     port.className = 'circle';
-    const padding = 15;
-    port.style.top = padding + idx * padding + 'px';
+    
+    port.style.top = rectangleTopPadding + idx * rectangleVerticalPadding + 'px';
     const text = document.createElement('div');
     text.className = 'circle-text';
-    text.textContent = inport;
     port.appendChild(text);
-    port.addEventListener('mousedown', function(event) {
-        event.preventDefault();
-    });
+
+    if (isOutport) {
+      port.style.left = 100 + 'px';
+      text.style.left = -30 + 'px';
+      text.textContent = portName;
+    }
+    else {
+      if (portName.includes("input_")) {
+        text.textContent = portName.split('_')[1];
+        const textbox = createTextbox();
+        port.appendChild(textbox);
+      }
+      else {
+        text.textContent = portName;
+        port.addEventListener('mousedown', function(event) {
+          event.preventDefault();
+        });
+      }
+      
+    }
 
     rectangle.appendChild(port);
+}
+
+function createTextbox() {
+  const textbox = document.createElement("input");
+  textbox.type = "text";
+  textbox.className = "textbox";
+  return textbox;
 }
 
 function moveRectangle(targetPos, rectangle){
