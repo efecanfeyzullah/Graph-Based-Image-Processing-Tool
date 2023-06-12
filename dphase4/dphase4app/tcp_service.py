@@ -6,6 +6,7 @@ import argparse
 import base64
 import json
 import io
+import time
 
 from PIL import Image
 from cryptography.fernet import Fernet
@@ -254,6 +255,7 @@ def thread_cleaner():
     while True:
         if done:
             break
+        time.sleep(0.1)
         ctList = list(client_threads.values())
         i = 0
         while i < len(ctList):
