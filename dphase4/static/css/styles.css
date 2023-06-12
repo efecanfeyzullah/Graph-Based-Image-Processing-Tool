@@ -1,4 +1,5 @@
 
+
 #left-menu {
     width: 200px;
     background-color: lightgray;
@@ -6,13 +7,23 @@
     height: 100vh;
 }
 
+
 #drop-area {
     margin-left: 220px; /* Adjust this value to create the desired separation */
-    background-color: lightgray;
+    background-color: rgb(211, 211, 211);
     height: 100vh;
     /* pointer-events: none; */
 }
 
+/* #mcanvas {
+    position:absolute;
+    top:0px;
+    margin-left: 220px; 
+    background-color: rgb(211, 211, 211);
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+} */
 
 /* Styling for the menu buttons */
 .menu-button {
@@ -24,9 +35,8 @@
     cursor: move;
 }
 
-
 /* Styling for the rectangles */
-.rectangle {
+.node {
     width: 100px;
     height: 50px;
     background-color: rgba(0, 0, 0, 0.2);
@@ -79,7 +89,7 @@
 }
 
 /* Styling for the drag feedback */
-.rectangle.dragging {
+.node.dragging {
     opacity: 0.6;
     border: 2px dashed gray;
 }
