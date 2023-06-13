@@ -267,12 +267,92 @@ def viewlogin(request):
         return render(request, 'login.html')
    
 def viewjstest(request):
+    context = {}
+
+    username = request.user.username
+
+    # Get uploaded image
+    # if 'uploadedimage' in request.FILES:
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({ "serverresponse": "Please login before uploading an image." })
+    #     image_file = request.FILES['uploadedimage']
+    #     image = Image.open(image_file)
+    #     #image.save("./static/" + image_file.name, 'PNG')
+
+    #     # Create a TCP socket object
+    #     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    #     # Connect to the server
+    #     sock.connect((HOST, PORT))
+
+    #     try:    
+    #         # Send user id to server
+    #         sock.sendall(username.encode())
+    #         # Recieve "1" from server
+    #         sock.recv(RECV_SIZE)
+
+    #         # Send image to tcp_service
+    #         buffer = io.BytesIO()
+    #         image.save(buffer, format="PNG")
+    #         img_bytes = buffer.getvalue()
+    #         image_base64 = base64.b64encode(img_bytes)
+    #         dataSize = len(image_base64)
+
+    #         # Send uploadimage command to server
+    #         serverResponse = send_command_receive_result(sock, "uploadimage " + image_file.name + " " + str(dataSize), username)
+    #         # Send image data
+    #         sock.sendall(image_base64)
+    #         # Recieve "1" from server
+    #         sock.recv(RECV_SIZE)
+    #     except ConnectionResetError:
+    #         print("Server closed connection.")
+    #     finally:
+    #         # Close the socket
+    #         sock.close()
+
+    # Get command
     command = request.POST.get('command')
-    print (command)
-    if (command != None and command != ''):
-        response = {'command': command}
-        return JsonResponse(response)
-    return render(request, 'jstest.html')
+    if command != None and command != '':
+        print(f'Received command from \"{username}\" -> {command}')
+
+        if not request.user.is_authenticated:
+            return HttpResponseRedirect('/login')
+            # return render(request, 'sendcommand.html', { "serverresponse": "Please login before sending commands." })
+
+        # Create a TCP socket object
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Connect to the server
+        sock.connect((HOST, PORT))
+
+        serverResponse = None
+        try:
+            # Send user id to server
+            sock.sendall(username.encode())
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
+            # Send the command to server
+            serverResponse = send_command_receive_result(sock, command, username)
+        except ConnectionResetError:
+            print("Server closed connection.")
+        finally:
+            # Close the socket
+            sock.close()
+
+        if serverResponse != None:
+            context["serverresponse"] = f'Server response: {serverResponse}'
+    else:
+        return render(request, 'jstest.html')
+
+    # Render sendcommand.html
+    response = JsonResponse(context)
+    return response
+    # command = request.POST.get('command')
+    # print (command)
+    # if (command != None and command != ''):
+    #     response = {'command': command}
+    #     return JsonResponse(response)
+    # return render(request, 'jstest.html')
 
 
 # 127.0.0.1:8000/sendcommand/

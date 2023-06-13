@@ -166,8 +166,25 @@ function handleDrop(event) {
 
   if (classList.contains("menu-button")) {
       const dropArea = event.currentTarget;
-      const newNode  = createNode(event, data);
-      dropArea.appendChild(newNode);
+      $.ajax({
+        url: '',
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        data: {
+          'command': `newnode ${buttonMapping[data].name}`
+        },
+        success: function(response) {
+          const newNode = createNode(event, data);
+          dropArea.appendChild(newNode);
+          console.log(response);
+        },
+        error: function(xhr, status, error) {
+          // Handle error response
+        }
+      });
+      
   }
   else if (classList.contains("node")){
       const targetPos = { x:event.clientX - 50, y:event.clientY - 25 };
@@ -318,13 +335,12 @@ function isPortAvailable(node, port) {
 }
 
 $(document).ready(function() {
-  // Retrieve the button element by its ID
-  var button = $("#NewGraph");
-  var csrfToken = $('[name=csrfmiddlewaretoken]').val();
+  // Retrieve the newGraphButton element by its ID
+  const newGraphButton = $("#NewGraph");
+  const csrfToken = $('[name=csrfmiddlewaretoken]').val();
   console.log(csrfToken);
-  // Attach an event listener to the button
-  button.on("click", function() {
-
+  // Attach an event listener to the newGraphButton
+  newGraphButton.on("click", function() {
     $.ajax({
       url: '',
       type: 'POST',
@@ -343,6 +359,28 @@ $(document).ready(function() {
       }
     });
     
+  });
+
+  const openGraphButton = $("#OpenGraph");
+  const graphIdText = $("#GraphIdText");
+  openGraphButton.on("click", function() {
+    $.ajax({
+      url: '',
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `open ${graphIdText.val()}`
+      },
+      success: function(response) {
+        // Handle success response
+        console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
   });
 });
 
