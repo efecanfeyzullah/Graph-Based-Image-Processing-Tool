@@ -316,3 +316,45 @@ function isPortAvailable(node, port) {
 
   return result;
 }
+
+$(document).ready(function() {
+  // Retrieve the button element by its ID
+  var button = $("#NewGraph");
+  var csrfToken = $('[name=csrfmiddlewaretoken]').val();
+  console.log(csrfToken);
+  // Attach an event listener to the button
+  button.on("click", function() {
+
+    $.ajax({
+      url: '',
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': 'newgraph'
+      },
+      success: function(response) {
+        // Handle success response
+        console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+    
+  });
+});
+
+function getCookie(name) {
+  var value = '; ' + document.cookie,
+      parts = value.split('; ' + name + '=');
+  if (parts.length == 2) return parts.pop().split(';').shift();
+}
+
+
+
+
+
+
+

@@ -13,11 +13,16 @@
         <a href="#" class="menu-button" id="GetFloat" draggable="true" data-title="GetFloat">GetFloat</a>
         <a href="#" class="menu-button" id="GetInteger" draggable="true" data-title="GetInteger">GetInteger</a>
         <a href="#" class="menu-button" id="GetString" draggable="true" data-title="GetString">GetString</a>
+        <button id="NewGraph">New Graph</button>
+        <input type="text" id="graphIdText" name="graphIdText"><br>
+        <button id="OpenGraph">Open Graph</button>
+
     </div>
     <div id="drop-area"></div>
-    <!-- <canvas id="mcanvas"></canvas> -->
-    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script src="{% static '/js/source.js' %}"></script>
+    {% csrf_token %}
 </body>
 </html>
 

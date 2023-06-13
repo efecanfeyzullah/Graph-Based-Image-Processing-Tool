@@ -2,6 +2,9 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt
+from django.middleware import csrf
+from django.http import JsonResponse
 
 from dphase4app import graphLibrary as gl
 from PIL import Image
@@ -255,7 +258,8 @@ def viewlogin(request):
         if user is not None:
             login(request, user)
             # Go to 127.0.0.1:8000/sendcommand/
-            return HttpResponseRedirect('/sendcommand/')
+            # return HttpResponseRedirect('/sendcommand/')
+            return HttpResponseRedirect('/jstest/')
         else:
             # Handle invalid credentials
             return render(request, 'login.html', {'error': 'Invalid username or password.'})
@@ -263,7 +267,13 @@ def viewlogin(request):
         return render(request, 'login.html')
    
 def viewjstest(request):
+    command = request.POST.get('command')
+    print (command)
+    if (command != None and command != ''):
+        response = {'command': command}
+        return JsonResponse(response)
     return render(request, 'jstest.html')
+
 
 # 127.0.0.1:8000/sendcommand/
 def viewsendcommand(request):
@@ -312,6 +322,7 @@ def viewsendcommand(request):
 
     # Get command
     command = request.POST.get('command')
+    print (command)
     if command != None and command != '':
         print(f'Received command from \"{username}\" -> {command}')
 
