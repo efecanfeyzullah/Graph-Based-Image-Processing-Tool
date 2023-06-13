@@ -10,7 +10,6 @@ const buttonMapping = {
 
 const nodeTopPadding = 30;
 const nodeVerticalPadding = 20;
-let nodeIdCounter = 0;
 
 let lineStart = { x:0, y:0 };
 let lineFinish = { x:0, y:0 };
@@ -18,7 +17,7 @@ let lineFinish = { x:0, y:0 };
 var connectionStart = { node:"", port:"" };
 var connectionFinish = { node:"", port:"" };
 var connections = []
-
+var nodes = []
 
 // Add event listeners to the menu buttons
 const menuButtons = document.getElementsByClassName("menu-button");
@@ -168,6 +167,7 @@ function endDrawing(event) {
         connectionFinish = null;
 
         drawConnections();
+        console.log(connections);
         console.log(response);
       },
       error: function(xhr, status, error) {
@@ -220,6 +220,7 @@ function handleDrop(event) {
         success: function(response) {
           const nodeId = response['serverresponse']['node_id'];
           const newNode = createNode(event, data, nodeId);
+          nodes.push(newNode);
           dropArea.appendChild(newNode);
           console.log(response);
         },
@@ -253,18 +254,24 @@ function createNode(event, data, nodeId) {
   newNode.addEventListener('dragstart', handleDragStart);
   newNode.addEventListener('dragend', handleDragEnd);
 
+  createDeleteButton(newNode);
+
   const inports = buttonMapping[data].inports;
   const outports = buttonMapping[data].outports;
   newNode.style.height = Math.max(inports.length, outports.length) * 
       nodeVerticalPadding + nodeTopPadding + 'px';
 
+  newNode.inports = [];
+  newNode.outports = [];
   for (let i = 0; i < inports.length; i++) {
-    createPort(newNode, i, inports[i], false);
+    var port = createPort(newNode, i, inports[i], false);
+    newNode.inports.push(port);
   }
   for (let i = 0; i < outports.length; i++) {
-    createPort(newNode, i, outports[i], true);
+    var port = createPort(newNode, i, outports[i], true);
+    newNode.outports.push(port);
   }
-  nodeIdCounter++;
+
   return newNode ;
 }
 
@@ -288,10 +295,6 @@ function createPort(node, idx, portName, isOutport) {
     text.style.left = -30 + 'px';
     text.textContent = portName;
     port.addEventListener('mousedown', startDrawing);
-
-    // port.addEventListener('mousedown', function(event) {
-    //   event.preventDefault();
-    // });
   }
   else {
     if (portName.includes("input_")) {
@@ -305,15 +308,52 @@ function createPort(node, idx, portName, isOutport) {
         event.preventDefault();
       });
       port.addEventListener('mouseup', endDrawing);
-      // port.addEventListener('mouseup', function(event) {
-      //   event.preventDefault();
-
-      // })
     }
     
   }
 
   node.appendChild(port);
+  return port;
+}
+
+function createDeleteButton(node) {
+  const deleteBtn = document.createElement('div');
+  deleteBtn.className = 'delete-button';
+  deleteBtn.style.top = 0 + 'px';
+  deleteBtn.addEventListener('mousedown', function(event) {
+    event.preventDefault();
+    $.ajax({
+      url: '',
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `deletenode ${node.getAttribute('id').split('-')[1]}`
+      },
+      success: function(response) {
+        const conns = response['serverresponse']['connections'];
+        const newConnections = []
+        conns.forEach (function(conn) {
+          var node0 = findNode(conn[0]).node;
+          var node1 = findNode(conn[2]).node;
+          var connStart = {node:node0, port:node0.outports[conn[1]]};
+          var connFinish = {node:node1, port:node1.inports[conn[3]]};
+          newConnections.push({start:connStart, finish:connFinish});
+        });
+        connections = newConnections;
+        console.log(connections);
+        drawConnections();
+        node.remove();
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+  });  
+
+  node.appendChild(deleteBtn);
+
 }
 
 function createTextbox() {
@@ -377,6 +417,7 @@ function isPortAvailable(node, port) {
   return result;
 }
 
+
 $(document).ready(function() {
   // Retrieve the newGraphButton element by its ID
   const newGraphButton = $("#NewGraph");
@@ -433,6 +474,28 @@ function getCookie(name) {
   if (parts.length == 2) return parts.pop().split(';').shift();
 }
 
+function resetConnections() {
+  connections.forEach(function(conn) {
+    var finishPort = conn.finish.port;
+    // finishPort.removeEventListener('mousedown')
+  });
+}
+
+function findNode(nodeId) {
+  var found = false;
+  var idx = -1;
+  var node = null;
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].getAttribute('id').split('-')[1] == nodeId) {
+      found = true;
+      idx = i;
+      node = nodes[i];
+      break;
+    }
+  }
+
+  return {found:found, idx:idx, node:node};
+}
 
 
 

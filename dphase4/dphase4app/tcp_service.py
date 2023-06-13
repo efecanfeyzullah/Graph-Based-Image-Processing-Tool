@@ -34,7 +34,7 @@ sock.listen()
 key = b'ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg=' # Random key, but same on all clients and server
 cipher_suite = Fernet(key)
 
-current_graphs_of_users = { "ecf": -1, "makcay": -1 }
+current_graphs_of_users = {}
 clients = []
 availableTid = 0
 client_threads = {}
@@ -74,6 +74,9 @@ def print_clients():
 # set <node_id>                                                         { "action": "set", "node_id": 0, "node_data": "Node will be here" }
 # uploadimage <image_name> <image_size>                                 { "action": "uploadimage", "image_name": "ImageName.png" "image_size": 1024 }
 # execute                                                               { "action": "execute" }
+
+### Other commands
+# adduser <username>                                                    { "action": "adduser", "username": "efe" }
 
 def receive_command_send_result(sock, client_address, userid):
     global nextGraphId
@@ -232,6 +235,15 @@ def receive_command_send_result(sock, client_address, userid):
                 # Receive "1" from django
                 sock.recv(RECV_SIZE)
             print("Sent all execution results to django.")
+        else:
+            message = "0"
+            sock.sendall(message.encode())
+    elif cmd_dict["action"] == "adduser":
+        print(f"Received \"adduser\" command from {client_address}.")
+        if cmd_dict["username"] not in list(current_graphs_of_users.keys()):
+            current_graphs_of_users[cmd_dict["username"]] = -1
+            message = "1"
+            sock.sendall(message.encode())
         else:
             message = "0"
             sock.sendall(message.encode())
