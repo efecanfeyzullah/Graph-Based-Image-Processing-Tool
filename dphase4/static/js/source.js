@@ -1,7 +1,7 @@
 // Mapping of button IDs to titles
 const buttonMapping = {
   CropImage: { name: "CropImage", inports: ["Image", "left_int", "top_int", "right_int", "bottom_int"], outports: ["Image"] },
-  LoadImage: { name: "LoadImage", inports: [], outports: ["Image"] },
+  LoadImage: { name: "LoadImage", inports: ["input_string"], outports: ["Image"] },
   GetFloat: { name: "GetFloat", inports: ["input_float"], outports: ["float"] },
   GetInteger: { name: "GetInteger", inports: ["input_int"], outports: ["int"] },
   GetString: { name: "GetString", inports: ["input_string"], outports: ["string"] },
@@ -127,12 +127,29 @@ function endDrawing(event) {
       success: function(response) {
         connections.push(connection);
         const finishPort = connectionFinish.port;
+        finishPort.setAttribute('is_connected', 'true');
         connectionStart.port.classList.remove('selected');
 
-        const enableHover = function(event) { event.preventDefault(); finishPort.classList.add('hovered');};
-        const disableHover = function(event) { event.preventDefault(); finishPort.classList.remove('hovered');};
+        const enableHover = function(event) { 
+          event.preventDefault();
+          if (finishPort.getAttribute('is_connected') == 'false') {
+            return;
+          }
+          finishPort.classList.add('hovered');
+        };
+        const disableHover = function(event) {
+          event.preventDefault(); 
+          if (finishPort.getAttribute('is_connected') == 'false') {
+            return;
+          }
+          finishPort.classList.remove('hovered');
+        };
+
         const enableClick = function(event) {
           event.preventDefault();
+          if (finishPort.getAttribute('is_connected') == 'false') {
+            return;
+          }
           $.ajax({
             url: '',
             type: 'POST',
@@ -232,9 +249,26 @@ function handleDrop(event) {
   }
   else if (classList.contains("node")){
       const targetPos = { x:event.clientX - 50, y:event.clientY - 25 };
-      moveNode(targetPos, droppedElement);
-      console.log(droppedElement.getAttribute("id"));
-      drawConnections();
+      $.ajax({
+        url: '',
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        data: {
+          'command': `updatenode ${targetPos.x} ${targetPos.y}`
+        },
+        success: function(response) {
+          moveNode(targetPos, droppedElement);
+          console.log(droppedElement.getAttribute("id"));
+          drawConnections();
+          console.log(response);
+        },
+        error: function(xhr, status, error) {
+          // Handle error response
+        }
+      });
+      
   }
 }
 
@@ -308,6 +342,7 @@ function createPort(node, idx, portName, isOutport) {
         event.preventDefault();
       });
       port.addEventListener('mouseup', endDrawing);
+      port.setAttribute('is_connected', 'false');
     }
     
   }
@@ -332,6 +367,7 @@ function createDeleteButton(node) {
         'command': `deletenode ${node.getAttribute('id').split('-')[1]}`
       },
       success: function(response) {
+        resetConnections();
         const conns = response['serverresponse']['connections'];
         const newConnections = []
         conns.forEach (function(conn) {
@@ -339,6 +375,7 @@ function createDeleteButton(node) {
           var node1 = findNode(conn[2]).node;
           var connStart = {node:node0, port:node0.outports[conn[1]]};
           var connFinish = {node:node1, port:node1.inports[conn[3]]};
+          connFinish.port.setAttribute('is_connected', 'true');
           newConnections.push({start:connStart, finish:connFinish});
         });
         connections = newConnections;
@@ -477,7 +514,7 @@ function getCookie(name) {
 function resetConnections() {
   connections.forEach(function(conn) {
     var finishPort = conn.finish.port;
-    // finishPort.removeEventListener('mousedown')
+    finishPort.setAttribute('is_connected', 'false');
   });
 }
 
