@@ -266,11 +266,33 @@ class Graph:
         if self.isvalid():  # Execute if valid
             print("Validation complete.")
 
-            # Execute all nodes in the added order
-            nodeList = self.nodes.values()
-            for node in nodeList:
-                output = node.execute()
-                self.updateConnections()
+            nodeList = list(self.nodes.values())
+            executedNodeIds = []
+
+            # Clear inports
+            i = 0
+            while i < len(nodeList):
+                j = 0
+                while j < len(nodeList[i].inportValues):
+                    nodeList[i].inportValues[j] = None
+                    j += 1
+                i += 1
+
+            # Execute all nodes that have their inports repeatedly until no nodes are left to execute
+            while True:
+                for node in nodeList:
+                    if node.id not in executedNodeIds:  
+                        inportsFilled = True
+                        for elem in node.inportValues:
+                            if elem == None:
+                                inportsFilled = False
+                                break
+                        if inportsFilled:
+                            output = node.execute()
+                            self.updateConnections()
+                            executedNodeIds.append(node.id)
+                if len(executedNodeIds) == len(nodeList):
+                    break
                     
             print("Execution complete.")
 
