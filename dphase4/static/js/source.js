@@ -141,11 +141,12 @@ function endDrawing(event) {
               'X-CSRFToken': getCookie('csrftoken')
             },
             data: {
-              'command': `connect ${node0Id} ${port0Id} ${node1Id} ${port1Id}`
+              'command': `disconnect ${node0Id} ${port0Id} ${node1Id} ${port1Id}`
             },
             success: function(response) {
               // edit this
               const existingEntry = isPortAvailable(connection.finish.node.getAttribute('id'), connection.finish.port.getAttribute('id'));
+
               connections.splice(existingEntry.foundIdx, 1);
               drawConnections();
 
