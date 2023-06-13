@@ -23,4 +23,5 @@ urlpatterns = [
     path('', views.viewindex),
     path('login/', views.viewlogin),
     path('sendcommand/', views.viewsendcommand),
+    path('jstest/', views.viewjstest)
 ]

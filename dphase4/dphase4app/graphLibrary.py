@@ -203,6 +203,14 @@ class Graph:
         self.nodes[node.id] = node
         return node
 
+    def deletenode(self, id):
+        if id in list(self.nodes.keys()):
+            del self.nodes[id]
+            i = 0
+            for elem in self.connections[:]:
+                if elem[0] == id or elem[2] == id:
+                    self.connections.remove(elem)
+
     def connect(self, node1, outport, node2, inport):
         self.connections.append((node1, outport, node2, inport))    # node1 and node2 are node ids, outport and inport are port names
 

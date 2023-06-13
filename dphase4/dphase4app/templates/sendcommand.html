@@ -5,6 +5,7 @@
 <head>
     <title>Graph Based Image Processing Tool</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
 </head>
 
 <body>
@@ -13,7 +14,7 @@
         <label for="user">Command:</label><br>
         <input type="text" id="command" name="command"><br>
         <br>
-        <input type="submit" value="Send"><br>
+        <input type="submit" id="sendcommandbutton" value="Send"><br>
     </form>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
@@ -25,7 +26,8 @@
     </div>
     
     <canvas id="canvas" width="500" height="500"></canvas>
-    <script src="{% static '/js/mainjs.js' %}"></script>
+    <!-- <script src="{% static '/js/mainjs.js' %}"></script> -->
+    <!-- <script src="{% static '/js/sendcommand.js' %}"></script> -->
 
     {% if resultimage %}
         <div>

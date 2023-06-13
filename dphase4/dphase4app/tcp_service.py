@@ -68,6 +68,7 @@ def print_clients():
 
 ### Graph specific commands
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
+# deletenode <node_id>                                                  { "action": "deletenode", "node_id": 0 }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # set <node_id>                                                         { "action": "set", "node_id": 0, "node_data": "Node will be here" }
@@ -131,7 +132,6 @@ def receive_command_send_result(sock, client_address, userid):
         else:
             message = "0"
             sock.sendall(message.encode())
-
     elif cmd_dict["action"] == "newnode":
         print(f"Received \"newnode\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
         if current_graphs_of_users[userid] != -1:
@@ -141,6 +141,16 @@ def receive_command_send_result(sock, client_address, userid):
         else:
             message = "-1"
             sock.sendall(message.encode())
+    elif cmd_dict["action"] == "deletenode":
+        print(f"Received \"deletenode\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
+        if current_graphs_of_users[userid] != -1:
+            graphs[current_graphs_of_users[userid]].deletenode(cmd_dict["node_id"])
+            j_data = json.dumps({ "connections": graphs[current_graphs_of_users[userid]].connections })
+            sock.sendall(j_data.encode())
+        else:
+            j_data = json.dumps({ "connections": -1 })
+            sock.sendall(j_data.encode())
+
     elif cmd_dict["action"] == "connect":
         print(f"Received \"connect\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
         if current_graphs_of_users[userid] != -1:

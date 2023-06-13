@@ -2,6 +2,9 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt
+from django.middleware import csrf
+from django.http import JsonResponse
 
 from dphase4app import graphLibrary as gl
 from PIL import Image
@@ -33,6 +36,7 @@ outputNumber = 0
 
 # Graph specific commands
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
+# deletenode <node_id>                                                  { "action": "deletenode", "node_id": 0 }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # set <node_id> <value>                                                 { "action": "set", "node_id": 0, "value": "10"}
@@ -49,6 +53,8 @@ def command_to_dict(cmd):
         return { "action": "close", "graph_id": int(cmd[1]) }
     elif cmd[0] == "newnode":
         return { "action": "newnode", "node_type": cmd[1] }
+    elif cmd[0] == "deletenode":
+        return { "action": "deletenode", "node_id": int(cmd[1]) }
     elif cmd[0] == "connect":
         return { "action": "connect", "node1_id": int(cmd[1]), "node1_outport": int(cmd[2]), "node2_id": int(cmd[3]), "node2_inport": int(cmd[4]) }
     elif cmd[0] == "disconnect":
@@ -114,7 +120,8 @@ def send_command_receive_result(sock, com, username):
                 graphs[current_graphs_of_users[username]] = gl.Graph("", username)
             graphs[current_graphs_of_users[username]].setWithDict(rcvdGraphDict)
             graphs[current_graphs_of_users[username]].name = "Local graph " + str(current_graphs_of_users[username])
-            response = "Opened graph " + str(command_dict["graph_id"]) + f". (Owner: {graphs[current_graphs_of_users[username]].user.name})"
+            response = {'graph_id': command_dict['graph_id'], 'owner':graphs[current_graphs_of_users[username]].user.name}
+
             print("Opened graph " + str(command_dict["graph_id"]) + ".")
         else:
             response = "Failed to open graph " + str(command_dict["graph_id"]) + "."
@@ -139,9 +146,19 @@ def send_command_receive_result(sock, com, username):
             response = "Failed to create a node."
             print("Failed to create a node.")
         else:
-            response = "Created a new node with id: " + result.decode() + "."
+            response =  {'node_id': int(result.decode()), 'node_type': command_dict["node_type"]}
             print("Created a new node with id: " + result.decode() + ".")
             graphs[current_graphs_of_users[username]].newnode(command_dict["node_type"], int(result.decode()))
+    elif command_dict["action"] == "deletenode":
+        json_data = json.dumps(command_dict)
+        sock.sendall(json_data.encode())
+        result = json.loads(sock.recv(RECV_SIZE).decode())
+        if result["connections"] != -1:
+            graphs[current_graphs_of_users[username]].deletenode(command_dict["node_id"])
+            response = result
+        else:
+            response = f"Failed to delete a node with id: {command_dict['node_id']}."
+            print(f"Failed to delete a node with id: {command_dict['node_id']}.")
     elif command_dict["action"] == "connect":
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
@@ -255,13 +272,102 @@ def viewlogin(request):
         if user is not None:
             login(request, user)
             # Go to 127.0.0.1:8000/sendcommand/
-            return HttpResponseRedirect('/sendcommand/')
+            # return HttpResponseRedirect('/sendcommand/')
+            return HttpResponseRedirect('/jstest/')
         else:
             # Handle invalid credentials
             return render(request, 'login.html', {'error': 'Invalid username or password.'})
     else:
         return render(request, 'login.html')
    
+def viewjstest(request):
+    context = {}
+
+    username = request.user.username
+
+    # Get uploaded image
+    # if 'uploadedimage' in request.FILES:
+    #     if not request.user.is_authenticated:
+    #         return JsonResponse({ "serverresponse": "Please login before uploading an image." })
+    #     image_file = request.FILES['uploadedimage']
+    #     image = Image.open(image_file)
+    #     #image.save("./static/" + image_file.name, 'PNG')
+
+    #     # Create a TCP socket object
+    #     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    #     # Connect to the server
+    #     sock.connect((HOST, PORT))
+
+    #     try:    
+    #         # Send user id to server
+    #         sock.sendall(username.encode())
+    #         # Recieve "1" from server
+    #         sock.recv(RECV_SIZE)
+
+    #         # Send image to tcp_service
+    #         buffer = io.BytesIO()
+    #         image.save(buffer, format="PNG")
+    #         img_bytes = buffer.getvalue()
+    #         image_base64 = base64.b64encode(img_bytes)
+    #         dataSize = len(image_base64)
+
+    #         # Send uploadimage command to server
+    #         serverResponse = send_command_receive_result(sock, "uploadimage " + image_file.name + " " + str(dataSize), username)
+    #         # Send image data
+    #         sock.sendall(image_base64)
+    #         # Recieve "1" from server
+    #         sock.recv(RECV_SIZE)
+    #     except ConnectionResetError:
+    #         print("Server closed connection.")
+    #     finally:
+    #         # Close the socket
+    #         sock.close()
+
+    # Get command
+    command = request.POST.get('command')
+    if command != None and command != '':
+        print(f'Received command from \"{username}\" -> {command}')
+
+        if not request.user.is_authenticated:
+            return HttpResponseRedirect('/login')
+            # return render(request, 'sendcommand.html', { "serverresponse": "Please login before sending commands." })
+
+        # Create a TCP socket object
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Connect to the server
+        sock.connect((HOST, PORT))
+
+        serverResponse = None
+        try:
+            # Send user id to server
+            sock.sendall(username.encode())
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
+            # Send the command to server
+            serverResponse = send_command_receive_result(sock, command, username)
+        except ConnectionResetError:
+            print("Server closed connection.")
+        finally:
+            # Close the socket
+            sock.close()
+
+        if serverResponse != None:
+            context["serverresponse"] = serverResponse
+    else:
+        return render(request, 'jstest.html')
+
+    # Render sendcommand.html
+    response = JsonResponse(context)
+    return response
+    # command = request.POST.get('command')
+    # print (command)
+    # if (command != None and command != ''):
+    #     response = {'command': command}
+    #     return JsonResponse(response)
+    # return render(request, 'jstest.html')
+
 
 # 127.0.0.1:8000/sendcommand/
 def viewsendcommand(request):
@@ -310,6 +416,7 @@ def viewsendcommand(request):
 
     # Get command
     command = request.POST.get('command')
+    print (command)
     if command != None and command != '':
         print(f'Received command from \"{username}\" -> {command}')
 

@@ -1,0 +1,92 @@
+
+
+#left-menu {
+    width: 200px;
+    background-color: lightgray;
+    float: left;
+    height: 100vh;
+}
+
+
+#drop-area {
+    margin-left: 220px; /* Adjust this value to create the desired separation */
+    background-color: rgb(211, 211, 211);
+    height: 100vh;
+    /* pointer-events: none; */
+}
+
+/* Styling for the menu buttons */
+.menu-button {
+    display: block;
+    padding: 10px;
+    margin-bottom: 5px;
+    text-decoration: none;
+    color: black;
+    cursor: move;
+}
+
+/* Styling for the rectangles */
+.node {
+    width: 100px;
+    height: 50px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid black;
+    outline: 2px solid black;
+    color: black; /* Change the text color to black */
+    text-align: center;
+    line-height: 1.2;
+    font-size: 14px; /* Adjust the font size as desired */
+    position: absolute;
+    pointer-events: auto;
+}
+
+
+/* Styling for the titles */
+.title {
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Styling for the circles */
+.circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: black;
+    position: absolute;
+    top: 15px;
+    left: -10px;
+    pointer-events: auto;
+}
+
+.circle.hovered {
+    transform: scale(1.2);
+}
+
+.circle.selected {
+    background-color: green;
+}
+
+.textbox {
+    position: relative;
+    left: -20px;
+    top: -5px;
+    width: 20px;
+    height: 5px;
+    font-size: 10px;
+}
+
+.circle-text {
+    position: absolute;
+    top: -5px;
+    left: 120%;
+    font-size: 12px;
+    color: black;
+}
+
+/* Styling for the drag feedback */
+.node.dragging {
+    opacity: 0.6;
+    border: 2px dashed gray;
+}

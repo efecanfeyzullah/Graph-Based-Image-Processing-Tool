@@ -3,16 +3,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Draw Line</title>
-  <style>
-    #canvas {
-      border: 1px solid #000;
-    }
-  </style>
+    <title>Menu Example</title>
+    <link rel="stylesheet" type="text/css" href="{% static '/css/styles.css' %}" />
 </head>
 <body>
-  <canvas id="canvas" width="500" height="500"></canvas>
+    <div id="left-menu">
+        <a href="#" class="menu-button" id="CropImage" draggable="true" data-title="CropImage">CropImage</a>
+        <a href="#" class="menu-button" id="LoadImage" draggable="true" data-title="LoadImage">LoadImage</a>
+        <a href="#" class="menu-button" id="GetFloat" draggable="true" data-title="GetFloat">GetFloat</a>
+        <a href="#" class="menu-button" id="GetInteger" draggable="true" data-title="GetInteger">GetInteger</a>
+        <a href="#" class="menu-button" id="GetString" draggable="true" data-title="GetString">GetString</a>
+        <a href="#" class="menu-button" id="DupImage" draggable="true" data-title="DupImage">DupImage</a>
+        <button id="NewGraph">New Graph</button>
+        <input type="text" id="GraphIdText" name="GraphIdText"><br>
+        <button id="OpenGraph">Open Graph</button>
 
-  <script src="{% static '/js/mainjs.js' %}"></script>
+    </div>
+    <div id="drop-area"></div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="{% static '/js/source.js' %}"></script>
+    {% csrf_token %}
 </body>
 </html>
+
