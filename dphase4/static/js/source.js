@@ -4,7 +4,8 @@ const buttonMapping = {
   LoadImage: { name: "LoadImage", inports: [], outports: ["Image"] },
   GetFloat: { name: "GetFloat", inports: ["input_float"], outports: ["float"] },
   GetInteger: { name: "GetInteger", inports: ["input_int"], outports: ["int"] },
-  GetString: { name: "GetString", inports: ["input_string"], outports: ["string"] }
+  GetString: { name: "GetString", inports: ["input_string"], outports: ["string"] },
+  DupImage: { name: "DupImage", inports: ["Image"], outports: ["Image", "Image"] },
 };
 
 const nodeTopPadding = 30;
@@ -110,32 +111,72 @@ function endDrawing(event) {
   const connectionCheck = isPortAvailable(connectionFinish.node.getAttribute('id'), connectionFinish.port.getAttribute('id'));
   
   if (connectionCheck.isAvailable) {
-    connections.push(connection);
-    const finishPort = connectionFinish.port;
-    connectionStart.port.classList.remove('selected');
+    const node0Id = connectionStart.node.getAttribute('id').split('-')[1];
+    const node1Id = connectionFinish.node.getAttribute('id').split('-')[1];
+    const port0Id = connectionStart.port.getAttribute('id').split('-')[1];
+    const port1Id = connectionFinish.port.getAttribute('id').split('-')[1];
 
-    const enableHover = function(event) { event.preventDefault(); finishPort.classList.add('hovered');};
-    const disableHover = function(event) { event.preventDefault(); finishPort.classList.remove('hovered');};
-    const enableClick = function(event) {
-      event.preventDefault();
-      const existingEntry = isPortAvailable(connection.finish.node.getAttribute('id'), connection.finish.port.getAttribute('id'));
-      connections.splice(existingEntry.foundIdx, 1);
-      drawConnections();
+    $.ajax({
+      url: '',
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `connect ${node0Id} ${port0Id} ${node1Id} ${port1Id}`
+      },
+      success: function(response) {
+        connections.push(connection);
+        const finishPort = connectionFinish.port;
+        connectionStart.port.classList.remove('selected');
 
-      finishPort.classList.remove('hovered');
-      finishPort.removeEventListener("mouseover", enableHover);
-      finishPort.removeEventListener("mouseout", disableHover);
-      finishPort.removeEventListener("mousedown", enableClick);
-    };
-    finishPort.addEventListener("mouseover", enableHover);
-    finishPort.addEventListener("mouseout", disableHover);
-    finishPort.addEventListener("mousedown", enableClick);
-  }
+        const enableHover = function(event) { event.preventDefault(); finishPort.classList.add('hovered');};
+        const disableHover = function(event) { event.preventDefault(); finishPort.classList.remove('hovered');};
+        const enableClick = function(event) {
+          event.preventDefault();
+          $.ajax({
+            url: '',
+            type: 'POST',
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            data: {
+              'command': `connect ${node0Id} ${port0Id} ${node1Id} ${port1Id}`
+            },
+            success: function(response) {
+              // edit this
+              const existingEntry = isPortAvailable(connection.finish.node.getAttribute('id'), connection.finish.port.getAttribute('id'));
+              connections.splice(existingEntry.foundIdx, 1);
+              drawConnections();
 
-  connectionStart = null;
-  connectionFinish = null;
+              finishPort.classList.remove('hovered');
+              finishPort.removeEventListener("mouseover", enableHover);
+              finishPort.removeEventListener("mouseout", disableHover);
+              finishPort.removeEventListener("mousedown", enableClick);
+            },
+            error: function(xhr, status, error) {
+              // Handle error response
+            }
+          });
+          
+        };
+        finishPort.addEventListener("mouseover", enableHover);
+        finishPort.addEventListener("mouseout", disableHover);
+        finishPort.addEventListener("mousedown", enableClick);
+        connectionStart = null;
+        connectionFinish = null;
 
-  drawConnections();
+        drawConnections();
+        console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+   
+    }
+
+    
 }
 
 // Function to handle the drag start event
@@ -176,7 +217,8 @@ function handleDrop(event) {
           'command': `newnode ${buttonMapping[data].name}`
         },
         success: function(response) {
-          const newNode = createNode(event, data);
+          const nodeId = response['serverresponse']['node_id'];
+          const newNode = createNode(event, data, nodeId);
           dropArea.appendChild(newNode);
           console.log(response);
         },
@@ -194,15 +236,15 @@ function handleDrop(event) {
   }
 }
 
-function createNode(event, data) {
+function createNode(event, data, nodeId) {
   const offsetX = event.clientX - 50;
   const offsetY = event.clientY - 25;
 
   const newNode = document.createElement('div');
   newNode.className = 'node';
   newNode.textContent = buttonMapping[data].name;
-  const nodeId = `node-${nodeIdCounter}`;
-  newNode.setAttribute('id', nodeId);
+  const nodeIdFull = `node-${nodeId}`;
+  newNode.setAttribute('id', nodeIdFull);
   newNode.style.left = offsetX + 'px';
   newNode.style.top = offsetY + 'px';
 

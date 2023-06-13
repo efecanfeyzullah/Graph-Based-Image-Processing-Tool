@@ -117,7 +117,8 @@ def send_command_receive_result(sock, com, username):
                 graphs[current_graphs_of_users[username]] = gl.Graph("", username)
             graphs[current_graphs_of_users[username]].setWithDict(rcvdGraphDict)
             graphs[current_graphs_of_users[username]].name = "Local graph " + str(current_graphs_of_users[username])
-            response = "Opened graph " + str(command_dict["graph_id"]) + f". (Owner: {graphs[current_graphs_of_users[username]].user.name})"
+            response = {'graph_id': command_dict['graph_id'], 'owner':graphs[current_graphs_of_users[username]].user.name}
+
             print("Opened graph " + str(command_dict["graph_id"]) + ".")
         else:
             response = "Failed to open graph " + str(command_dict["graph_id"]) + "."
@@ -142,7 +143,7 @@ def send_command_receive_result(sock, com, username):
             response = "Failed to create a node."
             print("Failed to create a node.")
         else:
-            response = "Created a new node with id: " + result.decode() + "."
+            response =  {'node_id': int(result.decode()), 'node_type': command_dict["node_type"]}
             print("Created a new node with id: " + result.decode() + ".")
             graphs[current_graphs_of_users[username]].newnode(command_dict["node_type"], int(result.decode()))
     elif command_dict["action"] == "connect":
@@ -340,7 +341,7 @@ def viewjstest(request):
             sock.close()
 
         if serverResponse != None:
-            context["serverresponse"] = f'Server response: {serverResponse}'
+            context["serverresponse"] = serverResponse
     else:
         return render(request, 'jstest.html')
 
