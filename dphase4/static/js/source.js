@@ -1,7 +1,7 @@
 // Mapping of button IDs to titles
 const buttonMapping = {
   CropImage: { name: "CropImage", inports: ["Image", "left_int", "top_int", "right_int", "bottom_int"], outports: ["Image"] },
-  LoadImage: { name: "LoadImage", inports: [], outports: ["Image"] },
+  LoadImage: { name: "LoadImage", inports: ["input_string"], outports: ["Image"] },
   GetFloat: { name: "GetFloat", inports: ["input_float"], outports: ["float"] },
   GetInteger: { name: "GetInteger", inports: ["input_int"], outports: ["int"] },
   GetString: { name: "GetString", inports: ["input_string"], outports: ["string"] },
@@ -249,9 +249,26 @@ function handleDrop(event) {
   }
   else if (classList.contains("node")){
       const targetPos = { x:event.clientX - 50, y:event.clientY - 25 };
-      moveNode(targetPos, droppedElement);
-      console.log(droppedElement.getAttribute("id"));
-      drawConnections();
+      $.ajax({
+        url: '',
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        data: {
+          'command': `updatenode ${targetPos.x} ${targetPos.y}`
+        },
+        success: function(response) {
+          moveNode(targetPos, droppedElement);
+          console.log(droppedElement.getAttribute("id"));
+          drawConnections();
+          console.log(response);
+        },
+        error: function(xhr, status, error) {
+          // Handle error response
+        }
+      });
+      
   }
 }
 

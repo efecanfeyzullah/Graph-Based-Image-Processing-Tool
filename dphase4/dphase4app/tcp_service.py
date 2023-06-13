@@ -142,6 +142,16 @@ def receive_command_send_result(sock, client_address, userid):
             message = str(node.id)
             sock.sendall(message.encode())
         else:
+            j_data = json.dumps({ "node_id": -1 })
+            sock.sendall(j_data.encode())
+    elif cmd_dict["action"] == "updatenode":
+        print(f"Received \"updatenode\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
+         if current_graphs_of_users[userid] != -1:
+            node = graphs[current_graphs_of_users[userid]].nodes[cmd_dict["node_id"]]
+            node.position = cmd_dict["position"]
+            j_data = json.dumps({"node_id":cmd_dict["node_id"], "position":node.position})
+            sock.sendall(j_data.encode())
+        else:
             message = "-1"
             sock.sendall(message.encode())
     elif cmd_dict["action"] == "deletenode":
