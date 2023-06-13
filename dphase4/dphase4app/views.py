@@ -21,7 +21,7 @@ PORT = 1234
 
 RECV_SIZE = 4096
 
-current_graphs_of_users = { "makcay": -1, "ecf": -1 }
+current_graphs_of_users = {}
 graphs = {}
 
 outputNumber = 0
@@ -41,6 +41,9 @@ outputNumber = 0
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # set <node_id> <value>                                                 { "action": "set", "node_id": 0, "value": "10"}
 # execute                                                               { "action": "execute" }
+
+### Other commands
+# adduser <username>                                                    { "action": "adduser", "username": "efe" }
 
 def command_to_dict(cmd):
     if cmd[0] == "newgraph":
@@ -65,6 +68,8 @@ def command_to_dict(cmd):
         return { "action": "uploadimage", "image_name": cmd[1], "image_size": int(cmd[2]) }
     elif cmd[0] == "execute":
         return { "action": "execute" }
+    elif cmd[0] == "adduser":
+        return { "action": "adduser", "username": cmd[1] }
 
 
 def send_command_receive_result(sock, com, username):
@@ -237,7 +242,17 @@ def send_command_receive_result(sock, com, username):
         else:
             response = "Failed to receive the final images from server. Validation failed or no finishing node present."
             print("Failed to receive the final images from server. Validation failed or no finishing node present.")
-
+    elif command_dict["action"] == "adduser":
+        json_data = json.dumps(command_dict)
+        sock.sendall(json_data.encode())
+        result = sock.recv(RECV_SIZE).decode()
+        if int(result) == 1:
+            current_graphs_of_users[command_dict["username"]] = -1
+            response = f"Added user {command_dict['username']}."
+            print(f"Added user {command_dict['username']}.")
+        else:
+            response = f"Failed to add user {command_dict['username']}."
+            print(f"Failed to add user {command_dict['username']}.")
     return response
 
 # Create a Fernet cipher object using a key
@@ -249,12 +264,12 @@ cipher_suite = Fernet(key)
 
 # 127.0.0.1:8000
 def viewindex(request):
-    exists = User.objects.filter(username="makcay").exists()
-    if not exists:
-        user = User.objects.create_user(username="makcay", password="1234")
-    exists = User.objects.filter(username="ecf").exists()
-    if not exists:
-        user = User.objects.create_user(username="ecf", password="1231")
+    # exists = User.objects.filter(username="makcay").exists()
+    # if not exists:
+    #     user = User.objects.create_user(username="makcay", password="1234")
+    # exists = User.objects.filter(username="ecf").exists()
+    # if not exists:
+    #     user = User.objects.create_user(username="ecf", password="1231")
 
     print("Registered usernames:")
     for u in User.objects.all():
@@ -265,20 +280,48 @@ def viewindex(request):
 
 # 127.0.0.1:8000/login/
 def viewlogin(request):
+    context = {}
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            # Go to 127.0.0.1:8000/sendcommand/
-            # return HttpResponseRedirect('/sendcommand/')
-            return HttpResponseRedirect('/jstest/')
-        else:
-            # Handle invalid credentials
-            return render(request, 'login.html', {'error': 'Invalid username or password.'})
-    else:
-        return render(request, 'login.html')
+        if "login" in request.POST:
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                # Go to 127.0.0.1:8000/sendcommand/
+                # return HttpResponseRedirect('/sendcommand/')
+                return HttpResponseRedirect('/jstest/')
+            else:
+                # Handle invalid credentials
+                return render(request, 'login.html', {'error': 'Invalid username or password.'})
+        elif "register" in request.POST:
+            # Create a TCP socket object
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connect to the server
+            sock.connect((HOST, PORT))
+
+            serverResponse = None
+            try:
+                # Send user id to server
+                sock.sendall(username.encode())
+                # Recieve "1" from server
+                sock.recv(RECV_SIZE)
+                # Send the command to server
+                serverResponse = send_command_receive_result(sock, "adduser " + username, username)
+                if serverResponse == "Added user " + username + ".":
+                    exists = User.objects.filter(username=username).exists()
+                    if not exists:
+                        user = User.objects.create_user(username=username, password=password)
+                    context["error"] = "Successfully registered."
+                else:
+                    context["error"] = "Username already exists."
+            except ConnectionResetError:
+                print("Server closed connection.")
+            finally:
+                # Close the socket
+                sock.close()
+    return render(request, 'login.html', context)
    
 def viewjstest(request):
     context = {}
