@@ -36,6 +36,7 @@ outputNumber = 0
 
 # Graph specific commands
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
+# deletenode <node_id>                                                  { "action": "deletenode", "node_id": 0 }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # set <node_id> <value>                                                 { "action": "set", "node_id": 0, "value": "10"}
@@ -52,6 +53,8 @@ def command_to_dict(cmd):
         return { "action": "close", "graph_id": int(cmd[1]) }
     elif cmd[0] == "newnode":
         return { "action": "newnode", "node_type": cmd[1] }
+    elif cmd[0] == "deletenode":
+        return { "action": "deletenode", "node_id": int(cmd[1]) }
     elif cmd[0] == "connect":
         return { "action": "connect", "node1_id": int(cmd[1]), "node1_outport": int(cmd[2]), "node2_id": int(cmd[3]), "node2_inport": int(cmd[4]) }
     elif cmd[0] == "disconnect":
@@ -146,6 +149,16 @@ def send_command_receive_result(sock, com, username):
             response =  {'node_id': int(result.decode()), 'node_type': command_dict["node_type"]}
             print("Created a new node with id: " + result.decode() + ".")
             graphs[current_graphs_of_users[username]].newnode(command_dict["node_type"], int(result.decode()))
+    elif command_dict["action"] == "deletenode":
+        json_data = json.dumps(command_dict)
+        sock.sendall(json_data.encode())
+        result = json.loads(sock.recv(RECV_SIZE).decode())
+        if result["connections"] != -1:
+            graphs[current_graphs_of_users[username]].deletenode(command_dict["node_id"])
+            response = result
+        else:
+            response = f"Failed to delete a node with id: {command_dict['node_id']}."
+            print(f"Failed to delete a node with id: {command_dict['node_id']}.")
     elif command_dict["action"] == "connect":
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
