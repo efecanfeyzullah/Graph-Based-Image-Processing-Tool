@@ -119,6 +119,8 @@ class Node:
             self.id = id
         Node.availableID += 1   # Increment availableID, next node will get the new available id
 
+        self.position = { "x": 0, "y": 0 }
+
         self.inportValues = []
         self.outportValues = []
 
@@ -202,7 +204,7 @@ class Graph:
         node = Node(componenttype, id)
         self.nodes[node.id] = node
         return node
-
+    
     def deletenode(self, id):
         if id in list(self.nodes.keys()):
             del self.nodes[id]
