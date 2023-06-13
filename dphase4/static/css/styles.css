@@ -15,16 +15,6 @@
     /* pointer-events: none; */
 }
 
-/* #mcanvas {
-    position:absolute;
-    top:0px;
-    margin-left: 220px; 
-    background-color: rgb(211, 211, 211);
-    height: 100vh;
-    pointer-events: none;
-    z-index: 1;
-} */
-
 /* Styling for the menu buttons */
 .menu-button {
     display: block;
@@ -70,6 +60,13 @@
     pointer-events: auto;
 }
 
+.circle.hovered {
+    transform: scale(1.2);
+}
+
+.circle.selected {
+    background-color: green;
+}
 
 .textbox {
     position: relative;
