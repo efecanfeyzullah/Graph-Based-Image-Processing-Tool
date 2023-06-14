@@ -7,7 +7,14 @@ const buttonMapping = {
   GetString: { name: "GetString", inports: ["input_string"], outports: ["string"], isInteractive: true },
   DupImage: { name: "DupImage", inports: ["Image"], outports: ["Image", "Image"], isInteractive: false },
   ViewImage: { name: "ViewImage", inports: ["Image"], outports: ["Image"], isInteractive: false },
-  SaveImage: { name: "SaveImage", inports: ["Image", "string"], outports: ["Image"], isInteractive: false },
+  SaveImage: { name: "SaveImage", inports: ["Image", "name_string"], outports: ["Image"], isInteractive: false },
+  RotateImage: { name: "RotateImage", inports: ["Image", "angle_float"], outports: ["Image"], isInteractive: false },
+  ScaleImage: { name: "ScaleImage", inports: ["Image", "scaleFactor_float"], outports: ["Image"], isInteractive: false },
+  StretchImage: { name: "StretchImage", inports: ["Image", "width_int", "height_int"], outports: ["Image"], isInteractive: false },
+  FitImage: { name: "FitImage", inports: ["Image", "width_int", "height_int"], outports: ["Image"], isInteractive: false },
+  StackImage: { name: "StackImage", inports: ["Image", "Image"], outports: ["Image"], isInteractive: false },
+  HStackImage: { name: "HStackImage", inports: ["Image", "Image"], outports: ["Image"], isInteractive: false },
+  GetDimensions: { name: "GetDimensions", inports: ["Image"], outports: ["width_int", "height_int"], isInteractive: false },
 };
 
 const nodeTopPadding = 30;
