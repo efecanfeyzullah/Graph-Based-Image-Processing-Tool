@@ -36,6 +36,7 @@ outputNumber = 0
 
 # Graph specific commands
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
+# updatenode <node_id> <x> <y>                                          { "action": "updatenode", "x": 0, "y": 0 }
 # deletenode <node_id>                                                  { "action": "deletenode", "node_id": 0 }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
@@ -56,6 +57,8 @@ def command_to_dict(cmd):
         return { "action": "close", "graph_id": int(cmd[1]) }
     elif cmd[0] == "newnode":
         return { "action": "newnode", "node_type": cmd[1] }
+    elif cmd[0] == "updatenode":
+        return { "action": "updatenode", "node_id": int(cmd[1]), "x": int(cmd[2]), "y": int(cmd[3]) }
     elif cmd[0] == "deletenode":
         return { "action": "deletenode", "node_id": int(cmd[1]) }
     elif cmd[0] == "connect":
@@ -151,9 +154,22 @@ def send_command_receive_result(sock, com, username):
             response = "Failed to create a node."
             print("Failed to create a node.")
         else:
-            response =  {'node_id': int(result.decode()), 'node_type': command_dict["node_type"]}
+            response = { 'node_id': int(result.decode()), 'node_type': command_dict["node_type"] }
             print("Created a new node with id: " + result.decode() + ".")
             graphs[current_graphs_of_users[username]].newnode(command_dict["node_type"], int(result.decode()))
+    elif command_dict["action"] == "updatenode":
+        json_data = json.dumps(command_dict)
+        sock.sendall(json_data.encode())
+        result = json.loads(sock.recv(RECV_SIZE).decode())
+        if result["node_id"] != -1:
+            node = graphs[current_graphs_of_users[username]].nodes[command_dict["node_id"]]
+            node.position["x"] = command_dict["x"]
+            node.position["y"] = command_dict["y"]
+            response = result
+            print("Updated positions of node with id " + str(command_dict["node_id"]) + " to (" + str(command_dict["x"]) + ", " + str(command_dict["y"]) + ").")
+        else:
+            response = "Failed to update positions of node with id " + str(command_dict["node_id"]) + " to (" + str(command_dict["x"]) + ", " + str(command_dict["y"]) + ")."
+            print("Failed to update positions of node with id " + str(command_dict["node_id"]) + " to (" + str(command_dict["x"]) + ", " + str(command_dict["y"]) + ").")
     elif command_dict["action"] == "deletenode":
         json_data = json.dumps(command_dict)
         sock.sendall(json_data.encode())
@@ -161,6 +177,7 @@ def send_command_receive_result(sock, com, username):
         if result["connections"] != -1:
             graphs[current_graphs_of_users[username]].deletenode(command_dict["node_id"])
             response = result
+            print(f"Deleted a node with id: {command_dict['node_id']}.")
         else:
             response = f"Failed to delete a node with id: {command_dict['node_id']}."
             print(f"Failed to delete a node with id: {command_dict['node_id']}.")

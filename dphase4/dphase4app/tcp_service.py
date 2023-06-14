@@ -68,6 +68,7 @@ def print_clients():
 
 ### Graph specific commands
 # newnode <node_type>                                                   { "action": "newnode", "node_type": "GetString" }
+# updatenode <node_id> <x> <y>                                          { "action": "updatenode", "x": 0, "y": 0 }
 # deletenode <node_id>                                                  { "action": "deletenode", "node_id": 0 }
 # connect <node1_id> <node1_outport> <node2_id> <node2_inport>          { "action": "connect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
 # disconnect <node1_id> <node1_outport> <node2_id> <node2_inport>       { "action": "disconnect", "node1_id": 0, "node1_outport": 0, "node2_id": 1, "node2_inport": 0 }
@@ -146,14 +147,15 @@ def receive_command_send_result(sock, client_address, userid):
             sock.sendall(j_data.encode())
     elif cmd_dict["action"] == "updatenode":
         print(f"Received \"updatenode\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
-         if current_graphs_of_users[userid] != -1:
+        if current_graphs_of_users[userid] != -1:
             node = graphs[current_graphs_of_users[userid]].nodes[cmd_dict["node_id"]]
-            node.position = cmd_dict["position"]
-            j_data = json.dumps({"node_id":cmd_dict["node_id"], "position":node.position})
+            node.position["x"] = cmd_dict["x"]
+            node.position["y"] = cmd_dict["y"]
+            j_data = json.dumps({ "node_id": cmd_dict["node_id"], "position": { "x": cmd_dict["x"], "y": cmd_dict["y"] }})
             sock.sendall(j_data.encode())
         else:
-            message = "-1"
-            sock.sendall(message.encode())
+            j_data = json.dumps({ "node_id": -1 })
+            sock.sendall(j_data.encode())
     elif cmd_dict["action"] == "deletenode":
         print(f"Received \"deletenode\" command from {client_address} for graph {current_graphs_of_users[userid]}.")
         if current_graphs_of_users[userid] != -1:
