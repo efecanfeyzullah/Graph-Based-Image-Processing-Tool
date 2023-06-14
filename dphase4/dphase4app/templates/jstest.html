@@ -14,9 +14,21 @@
         <a href="#" class="menu-button" id="GetInteger" draggable="true" data-title="GetInteger">GetInteger</a>
         <a href="#" class="menu-button" id="GetString" draggable="true" data-title="GetString">GetString</a>
         <a href="#" class="menu-button" id="DupImage" draggable="true" data-title="DupImage">DupImage</a>
+        <a href="#" class="menu-button" id="ViewImage" draggable="true" data-title="ViewImage">ViewImage</a>
         <button id="NewGraph">New Graph</button>
         <input type="text" id="GraphIdText" name="GraphIdText"><br>
         <button id="OpenGraph">Open Graph</button>
+        <button id="CloseGraph">Close Graph</button>
+        <br>
+        <br>
+        <button id="Exec">Execute</button>
+        <br>
+        <br>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="uploadedimage" accept="image/*">
+            <button type="submit">Upload</button>
+          </form>
 
     </div>
     <div id="drop-area"></div>

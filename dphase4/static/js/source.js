@@ -1,11 +1,12 @@
 // Mapping of button IDs to titles
 const buttonMapping = {
-  CropImage: { name: "CropImage", inports: ["Image", "left_int", "top_int", "right_int", "bottom_int"], outports: ["Image"] },
-  LoadImage: { name: "LoadImage", inports: ["input_string"], outports: ["Image"] },
-  GetFloat: { name: "GetFloat", inports: ["input_float"], outports: ["float"] },
-  GetInteger: { name: "GetInteger", inports: ["input_int"], outports: ["int"] },
-  GetString: { name: "GetString", inports: ["input_string"], outports: ["string"] },
-  DupImage: { name: "DupImage", inports: ["Image"], outports: ["Image", "Image"] },
+  CropImage: { name: "CropImage", inports: ["Image", "left_int", "top_int", "right_int", "bottom_int"], outports: ["Image"], isInteractive: false },
+  LoadImage: { name: "LoadImage", inports: ["input_string"], outports: ["Image"], isInteractive: true },
+  GetFloat: { name: "GetFloat", inports: ["input_float"], outports: ["float"], isInteractive: true },
+  GetInteger: { name: "GetInteger", inports: ["input_int"], outports: ["int"], isInteractive: true },
+  GetString: { name: "GetString", inports: ["input_string"], outports: ["string"], isInteractive: true },
+  DupImage: { name: "DupImage", inports: ["Image"], outports: ["Image", "Image"], isInteractive: false },
+  ViewImage: { name: "ViewImage", inports: ["Image"], outports: ["Image"], isInteractive: false },
 };
 
 const nodeTopPadding = 30;
@@ -249,6 +250,7 @@ function handleDrop(event) {
   }
   else if (classList.contains("node")){
       const targetPos = { x:event.clientX - 50, y:event.clientY - 25 };
+      const nodeId = droppedElement.getAttribute('id').split('-')[1];
       $.ajax({
         url: '',
         type: 'POST',
@@ -256,7 +258,7 @@ function handleDrop(event) {
           'X-CSRFToken': getCookie('csrftoken')
         },
         data: {
-          'command': `updatenode ${targetPos.x} ${targetPos.y}`
+          'command': `updatenode ${nodeId} ${targetPos.x} ${targetPos.y}`
         },
         success: function(response) {
           moveNode(targetPos, droppedElement);
@@ -279,6 +281,7 @@ function createNode(event, data, nodeId) {
   const newNode = document.createElement('div');
   newNode.className = 'node';
   newNode.textContent = buttonMapping[data].name;
+  newNode.setAttribute('name', buttonMapping[data].name);
   const nodeIdFull = `node-${nodeId}`;
   newNode.setAttribute('id', nodeIdFull);
   newNode.style.left = offsetX + 'px';
@@ -355,6 +358,7 @@ function createDeleteButton(node) {
   const deleteBtn = document.createElement('div');
   deleteBtn.className = 'delete-button';
   deleteBtn.style.top = 0 + 'px';
+  const nodeId = node.getAttribute('id').split('-')[1];
   deleteBtn.addEventListener('mousedown', function(event) {
     event.preventDefault();
     $.ajax({
@@ -364,7 +368,7 @@ function createDeleteButton(node) {
         'X-CSRFToken': getCookie('csrftoken')
       },
       data: {
-        'command': `deletenode ${node.getAttribute('id').split('-')[1]}`
+        'command': `deletenode ${nodeId}`
       },
       success: function(response) {
         resetConnections();
@@ -381,6 +385,8 @@ function createDeleteButton(node) {
         connections = newConnections;
         console.log(connections);
         drawConnections();
+        const idx = findNode(nodeId).idx;
+        nodes.splice(idx, 1);
         node.remove();
       },
       error: function(xhr, status, error) {
@@ -483,6 +489,8 @@ $(document).ready(function() {
   });
 
   const openGraphButton = $("#OpenGraph");
+  const closeGraphButton = $("#CloseGraph");
+  const execButton = $("#Exec");
   const graphIdText = $("#GraphIdText");
   openGraphButton.on("click", function() {
     $.ajax({
@@ -497,6 +505,102 @@ $(document).ready(function() {
       success: function(response) {
         // Handle success response
         console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+  });
+
+  closeGraphButton.on("click", function() {
+    $.ajax({
+      url: '',
+      type: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `close ${graphIdText.val()}`
+      },
+      success: function(response) {
+        // Handle success response
+        console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+  });
+
+  execButton.on("click", function() {
+    nodes.forEach(function(node) {
+      // console.log(node.textContent);
+      if (buttonMapping[node.getAttribute('name')].isInteractive) {
+        const nodeId = node.getAttribute('id').split('-')[1];
+        const textbox = node.querySelector('.textbox');
+        const nodeData = textbox.value;
+        const command = `set ${nodeId} ${nodeData}`;
+        console.log(command);
+        $.ajax({
+          url: '',
+          type: 'POST',
+          async: false,
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          data: {
+            'command': command
+          },
+          success: function(response) {
+            // Handle success response
+            console.log(response);
+          },
+          error: function(xhr, status, error) {
+            // Handle error response
+          }
+        });
+      }
+      
+    });
+    
+    console.log('sets done --> exec now');
+
+    $.ajax({
+      url: '',
+      type: 'POST',
+      async: false,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': 'execute'
+      },
+      success: function(response) {
+        // Handle success response
+        console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+
+    $.ajax({
+      url: '',
+      type: 'POST',
+      async: false,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': 'getview 0'
+      },
+      success: function(response) {
+        // Handle success response
+        var newWindow = window.open('', '_blank');
+        var image = new Image();
+        image.src = 'data:image/png;base64,' + response["serverresponse"];
+        newWindow.document.body.appendChild(image);
+        // console.log(response);
       },
       error: function(xhr, status, error) {
         // Handle error response

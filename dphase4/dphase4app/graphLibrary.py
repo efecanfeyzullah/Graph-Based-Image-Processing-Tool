@@ -272,6 +272,9 @@ class Graph:
             # Clear inports
             i = 0
             while i < len(nodeList):
+                if (nodeList[i].component.isInteractive):
+                    i += 1
+                    continue
                 j = 0
                 while j < len(nodeList[i].inportValues):
                     nodeList[i].inportValues[j] = None

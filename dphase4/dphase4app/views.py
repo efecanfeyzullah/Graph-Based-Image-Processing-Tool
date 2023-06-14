@@ -73,6 +73,8 @@ def command_to_dict(cmd):
         return { "action": "execute" }
     elif cmd[0] == "adduser":
         return { "action": "adduser", "username": cmd[1] }
+    elif cmd[0] == "getview":
+        return { "action": "getview", "node_id": cmd[1] }
 
 
 def send_command_receive_result(sock, com, username):
@@ -270,6 +272,16 @@ def send_command_receive_result(sock, com, username):
         else:
             response = f"Failed to add user {command_dict['username']}."
             print(f"Failed to add user {command_dict['username']}.")
+    elif command_dict["action"] == "getview":
+        nodeId = int(command_dict["node_id"])
+        img_data = graphs[current_graphs_of_users[username]].nodes[nodeId].outportValues[0]
+        stream = io.BytesIO()
+        # Save the image to the stream in a specific format (e.g., JPEG)
+        img_data.save(stream, format='PNG')
+        # Get the bytes from the stream
+        image_bytes = stream.getvalue()
+        img_str = base64.b64encode(image_bytes).decode()
+        response = img_str
     return response
 
 # Create a Fernet cipher object using a key
@@ -346,43 +358,43 @@ def viewjstest(request):
     username = request.user.username
 
     # Get uploaded image
-    # if 'uploadedimage' in request.FILES:
-    #     if not request.user.is_authenticated:
-    #         return JsonResponse({ "serverresponse": "Please login before uploading an image." })
-    #     image_file = request.FILES['uploadedimage']
-    #     image = Image.open(image_file)
-    #     #image.save("./static/" + image_file.name, 'PNG')
+    if 'uploadedimage' in request.FILES:
+        if not request.user.is_authenticated:
+            return JsonResponse({ "serverresponse": "Please login before uploading an image." })
+        image_file = request.FILES['uploadedimage']
+        image = Image.open(image_file)
+        #image.save("./static/" + image_file.name, 'PNG')
 
-    #     # Create a TCP socket object
-    #     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Create a TCP socket object
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    #     # Connect to the server
-    #     sock.connect((HOST, PORT))
+        # Connect to the server
+        sock.connect((HOST, PORT))
 
-    #     try:    
-    #         # Send user id to server
-    #         sock.sendall(username.encode())
-    #         # Recieve "1" from server
-    #         sock.recv(RECV_SIZE)
+        try:    
+            # Send user id to server
+            sock.sendall(username.encode())
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
 
-    #         # Send image to tcp_service
-    #         buffer = io.BytesIO()
-    #         image.save(buffer, format="PNG")
-    #         img_bytes = buffer.getvalue()
-    #         image_base64 = base64.b64encode(img_bytes)
-    #         dataSize = len(image_base64)
+            # Send image to tcp_service
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            img_bytes = buffer.getvalue()
+            image_base64 = base64.b64encode(img_bytes)
+            dataSize = len(image_base64)
 
-    #         # Send uploadimage command to server
-    #         serverResponse = send_command_receive_result(sock, "uploadimage " + image_file.name + " " + str(dataSize), username)
-    #         # Send image data
-    #         sock.sendall(image_base64)
-    #         # Recieve "1" from server
-    #         sock.recv(RECV_SIZE)
-    #     except ConnectionResetError:
-    #         print("Server closed connection.")
-    #     finally:
-    #         # Close the socket
-    #         sock.close()
+            # Send uploadimage command to server
+            serverResponse = send_command_receive_result(sock, "uploadimage " + image_file.name + " " + str(dataSize), username)
+            # Send image data
+            sock.sendall(image_base64)
+            # Recieve "1" from server
+            sock.recv(RECV_SIZE)
+        except ConnectionResetError:
+            print("Server closed connection.")
+        finally:
+            # Close the socket
+            sock.close()
 
     # Get command
     command = request.POST.get('command')

@@ -290,11 +290,12 @@ def thread_cleaner():
         if done:
             break
         time.sleep(0.1)
-        ctList = list(client_threads.values())
+        ctValueList = list(client_threads.values())
+        ctKeyList = list(client_threads.keys())
         i = 0
-        while i < len(ctList):
-            if ctList[i][1]:
-                key = list(client_threads.keys())[i]
+        while i < len(ctValueList):
+            if ctValueList[i][1]:
+                key = ctKeyList[i]
                 client_threads[key][0].join()
                 del client_threads[key]
             i += 1
