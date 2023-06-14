@@ -75,6 +75,8 @@ def command_to_dict(cmd):
         return { "action": "adduser", "username": cmd[1] }
     elif cmd[0] == "getview":
         return { "action": "getview", "node_id": cmd[1] }
+    elif cmd[0] == "getsavedata":
+        return { "action": "getsavedata", "node_id": cmd[1] }
 
 
 def send_command_receive_result(sock, com, username):
@@ -235,10 +237,17 @@ def send_command_receive_result(sock, com, username):
                 nodeid = int(sock.recv(RECV_SIZE).decode())
                 # Send "1" to server
                 sock.sendall("1".encode())
+                if graphs[current_graphs_of_users[username]].nodes[nodeid].componenttype == "SaveImage":
+                    # Get image name from server
+                    imagename = sock.recv(RECV_SIZE).decode()
+                    graphs[current_graphs_of_users[username]].nodes[nodeid].inportValues[1] = imagename
+                    # Send "1" to server
+                    sock.sendall("1".encode())
                 # Get image size from server
                 imageSize = int(sock.recv(RECV_SIZE).decode())
                 # Send "1" to server
                 sock.sendall("1".encode())
+                
                 # Get image from server
                 receivedSize = 0
                 receivedData = b""
@@ -275,13 +284,26 @@ def send_command_receive_result(sock, com, username):
     elif command_dict["action"] == "getview":
         nodeId = int(command_dict["node_id"])
         img_data = graphs[current_graphs_of_users[username]].nodes[nodeId].outportValues[0]
-        stream = io.BytesIO()
-        # Save the image to the stream in a specific format (e.g., JPEG)
-        img_data.save(stream, format='PNG')
-        # Get the bytes from the stream
-        image_bytes = stream.getvalue()
-        img_str = base64.b64encode(image_bytes).decode()
-        response = img_str
+        if (img_data != None):
+            stream = io.BytesIO()
+            img_data.save(stream, format='PNG')
+            image_bytes = stream.getvalue()
+            img_str = base64.b64encode(image_bytes).decode()
+            response = img_str
+        else:
+            response = '-1'
+    elif command_dict["action"] == "getsavedata":
+        nodeId = int(command_dict["node_id"])
+        img_data = graphs[current_graphs_of_users[username]].nodes[nodeId].outportValues[0]
+        img_name = graphs[current_graphs_of_users[username]].nodes[nodeId].inportValues[1]
+        if (img_data != None):
+            stream = io.BytesIO()
+            img_data.save(stream, format='PNG')
+            image_bytes = stream.getvalue()
+            img_str = base64.b64encode(image_bytes).decode()
+            response = {'image_name':img_name, 'image_data':img_str}
+        else:
+            response = '-1'
     return response
 
 # Create a Fernet cipher object using a key

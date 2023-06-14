@@ -7,6 +7,7 @@ const buttonMapping = {
   GetString: { name: "GetString", inports: ["input_string"], outports: ["string"], isInteractive: true },
   DupImage: { name: "DupImage", inports: ["Image"], outports: ["Image", "Image"], isInteractive: false },
   ViewImage: { name: "ViewImage", inports: ["Image"], outports: ["Image"], isInteractive: false },
+  SaveImage: { name: "SaveImage", inports: ["Image", "string"], outports: ["Image"], isInteractive: false },
 };
 
 const nodeTopPadding = 30;
@@ -292,6 +293,12 @@ function createNode(event, data, nodeId) {
   newNode.addEventListener('dragend', handleDragEnd);
 
   createDeleteButton(newNode);
+  if (buttonMapping[data].name == "ViewImage") {
+    createViewButton(newNode);
+  }
+  else if (buttonMapping[data].name == "SaveImage") {
+    createSaveButton(newNode);
+  }
 
   const inports = buttonMapping[data].inports;
   const outports = buttonMapping[data].outports;
@@ -397,6 +404,93 @@ function createDeleteButton(node) {
 
   node.appendChild(deleteBtn);
 
+}
+
+function createViewButton(node) {
+  const viewBtn = document.createElement('div');
+  viewBtn.className = 'view-button';
+  viewBtn.style.top = 0 + 'px';
+  const nodeId = node.getAttribute('id').split('-')[1];
+  viewBtn.addEventListener('mousedown', function(event) {
+    event.preventDefault();
+    $.ajax({
+      url: '',
+      type: 'POST',
+      async: false,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `getview ${nodeId}`
+      },
+      success: function(response) {
+        // Handle success response
+        if (response["serverresponse"] != -1)
+        {
+          var newWindow = window.open('', '_blank');
+          var image = new Image();
+          image.src = 'data:image/png;base64,' + response["serverresponse"];
+          newWindow.document.body.appendChild(image);
+        }
+       
+        // console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+  });  
+
+  node.appendChild(viewBtn);
+}
+
+function createSaveButton(node) {
+  const saveBtn = document.createElement('div');
+  saveBtn.className = 'view-button';
+  saveBtn.style.top = 0 + 'px';
+  const nodeId = node.getAttribute('id').split('-')[1];
+  saveBtn.addEventListener('mousedown', function(event) {
+    event.preventDefault();
+    $.ajax({
+      url: '',
+      type: 'POST',
+      async: false,
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      data: {
+        'command': `getsavedata ${nodeId}`
+      },
+      success: function(response) {
+        // Handle success response
+        if (response["serverresponse"] != -1)
+        {
+          var image = new Image();
+          image.src = 'data:image/png;base64,' + response["serverresponse"]["image_data"];
+          const imgName = response["serverresponse"]["image_name"];
+          var link = document.createElement('a');
+          link.href = image.src;
+          link.download = imgName;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+
+          link.addEventListener('mousedown', function(event) {
+            event.preventDefault();
+            // event.stopPropagation();
+          });
+
+          link.click();
+        }
+       
+        // console.log(response);
+      },
+      error: function(xhr, status, error) {
+        // Handle error response
+      }
+    });
+  });  
+
+  node.appendChild(saveBtn);
 }
 
 function createTextbox() {
@@ -584,28 +678,6 @@ $(document).ready(function() {
       }
     });
 
-    $.ajax({
-      url: '',
-      type: 'POST',
-      async: false,
-      headers: {
-        'X-CSRFToken': getCookie('csrftoken')
-      },
-      data: {
-        'command': 'getview 0'
-      },
-      success: function(response) {
-        // Handle success response
-        var newWindow = window.open('', '_blank');
-        var image = new Image();
-        image.src = 'data:image/png;base64,' + response["serverresponse"];
-        newWindow.document.body.appendChild(image);
-        // console.log(response);
-      },
-      error: function(xhr, status, error) {
-        // Handle error response
-      }
-    });
   });
 });
 

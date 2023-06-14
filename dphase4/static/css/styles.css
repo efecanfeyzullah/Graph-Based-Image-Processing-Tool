@@ -78,6 +78,16 @@
     left: 0px;
 }
 
+.view-button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: greenyellow;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
 .textbox {
     position: relative;
     left: -20px;

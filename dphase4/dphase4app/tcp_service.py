@@ -232,6 +232,11 @@ def receive_command_send_result(sock, client_address, userid):
                 sock.sendall(str(elem[0]).encode())
                 # Receive "1" from django
                 sock.recv(RECV_SIZE)
+                if graphs[current_graphs_of_users[userid]].nodes[elem[0]].componenttype == "SaveImage":
+            	    # Send inport value
+            	    sock.sendall(graphs[current_graphs_of_users[userid]].nodes[elem[0]].inportValues[1].encode())
+            	    # Receive "1" from django
+            	    sock.recv(RECV_SIZE)
                 # Send outport value
                 buffer = io.BytesIO()
                 elem[1].save(buffer, format="PNG")
